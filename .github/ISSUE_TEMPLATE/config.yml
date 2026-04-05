@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security reports
+    url: https://github.com/leeroywking/radio_game/blob/master/SECURITY.md
+    about: Please use the security reporting guidance instead of filing public security issues.

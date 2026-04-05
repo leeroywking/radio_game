@@ -58,6 +58,8 @@ Build desktop and browser artifacts:
 ./scripts/build_exports.sh
 ```
 
+The test agent writes local runtime reports into `testing/reports/`, compares the current run to the previous one, and CI uploads those reports as artifacts.
+
 ## What The Prototype Covers
 
 - Top-down movement on a real Washington hillshade map
