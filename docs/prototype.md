@@ -59,6 +59,8 @@ The waterfall display is currently a fake but structured spectrogram:
 - Color intensity represents stronger simulated energy at each frequency
 - Active broadcast frequencies show brighter vertical traces and pulsing energy
 - The waterfall is rendered on a HUD texture surface so it remains visible above the panel chrome
+- Clicking the waterfall tunes the DF receiver to the selected displayed frequency
+- Waterfall peaks are now driven by the live station list and player-relative signal strength, not a generic band pattern
 
 The stated task for the player is:
 

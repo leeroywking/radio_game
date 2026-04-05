@@ -1,9 +1,9 @@
 # Testing Agent Report
 
-Generated: {day:5, dst:True, hour:14, minute:22, month:4, second:21, weekday:0, year:2026}
+Generated: {day:5, dst:True, hour:14, minute:27, month:4, second:28, weekday:0, year:2026}
 
-- Cases: 7
-- Passed: 7
+- Cases: 9
+- Passed: 9
 - Failed: 0
 - Warnings: 2
 
@@ -27,10 +27,25 @@ Generated: {day:5, dst:True, hour:14, minute:22, month:4, second:21, weekday:0, 
 - Warning: False
 - row_count: 11
 - bin_count: 72
-- max_intensity: 0.572323
-- average_intensity: 0.081224
-- bright_bins: 33
+- max_intensity: 0.480234
+- average_intensity: 0.062857
+- bright_bins: 28
 - has_texture: True
+
+## waterfall_click_tuning
+
+- Pass: True
+- Warning: False
+- df_frequency: 146.5
+- expected_frequency: 146.5
+
+## waterfall_station_energy
+
+- Pass: True
+- Warning: False
+- broadcast_count: 4
+- strong_count: 4
+- average_station_intensity: 0.294643
 
 ## scanner_lock
 
@@ -78,8 +93,10 @@ Generated: {day:5, dst:True, hour:14, minute:22, month:4, second:21, weekday:0, 
 
 - reset_randomization: unchanged
 - df_numeric_entry: unchanged
-- waterfall_visibility: new_case
-- scanner_lock: unchanged
+- waterfall_visibility: pass_state_changed
+- waterfall_click_tuning: unchanged
+- waterfall_station_energy: pass_state_changed
+- scanner_lock: metrics_changed
 - fix_submission: unchanged
-- target_audio_continuity_receiver: metrics_changed
+- target_audio_continuity_receiver: unchanged
 - target_audio_continuity_clean: unchanged

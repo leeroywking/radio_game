@@ -188,6 +188,9 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_scanner"):
 		_trigger_scanner()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
+		if waterfall_display != null and waterfall_display.get_global_rect().has_point(event.position):
+			_tune_df_to_waterfall_click(event.position)
+			return
 		if PLAY_AREA.has_point(event.position):
 			fix_position = event.position
 			update()
@@ -435,6 +438,18 @@ func _apply_frequency_text(raw_text: String) -> void:
 	df_frequency = stepify(clamp(parsed, SCANNER_MIN_FREQ, SCANNER_MAX_FREQ), SCANNER_STEP)
 	df_frequency_slider.value = df_frequency
 	_sync_control_labels()
+
+
+func _tune_df_to_waterfall_click(screen_position: Vector2) -> void:
+	if waterfall_display == null:
+		return
+	var rect = waterfall_display.get_global_rect()
+	if rect.size.x <= 1.0:
+		return
+	var ratio = clamp((screen_position.x - rect.position.x) / rect.size.x, 0.0, 1.0)
+	var tuned_frequency = stepify(lerp(SCANNER_MIN_FREQ, SCANNER_MAX_FREQ, ratio), SCANNER_STEP)
+	testing_set_df_frequency(tuned_frequency)
+	result_text = "DF tuned from waterfall to %.3f MHz." % df_frequency
 
 
 func _load_wav_stream(path: String, should_loop: bool) -> AudioStream:
@@ -773,27 +788,33 @@ func _push_waterfall_row(delta: float) -> void:
 	for bin_index in range(WATERFALL_BINS):
 		var ratio = float(bin_index) / float(max(WATERFALL_BINS - 1, 1))
 		var frequency = lerp(SCANNER_MIN_FREQ, SCANNER_MAX_FREQ, ratio)
-		var ambient_floor = 0.05 + 0.025 * sin(t * 0.65 + ratio * 9.0)
-		var ripple = 0.018 * sin(t * 5.4 + ratio * 34.0 + sin(t * 0.8))
-		var sparkle = rand_range(0.0, 0.018)
+		var ambient_floor = 0.035 + 0.018 * sin(t * 0.65 + ratio * 9.0)
+		var ripple = 0.014 * sin(t * 5.4 + ratio * 34.0 + sin(t * 0.8))
+		var sparkle = rand_range(0.0, 0.014)
 		var intensity = ambient_floor + ripple + sparkle
 		for broadcast in broadcasts:
-			var frequency_delta = abs(frequency - broadcast["frequency"])
-			var band_width = 0.028
-			var peak = exp(-pow(frequency_delta / band_width, 2.0))
-			var role_gain = 0.0
-			if broadcast["role"] == "target":
-				role_gain = 0.36 + 0.08 * sin(t * 1.5 + frequency * 3.0)
-			else:
-				role_gain = 0.22 + 0.06 * sin(t * 1.2 + frequency * 4.0 + float(bin_index) * 0.03)
-			var pulse = 0.9 + 0.1 * sin(t * 8.0 + frequency_delta * 17.0 + float(bin_index) * 0.1)
-			intensity += peak * role_gain * pulse
-			var shoulder = exp(-pow(frequency_delta / 0.055, 2.0)) * 0.065
-			intensity += shoulder
+			intensity += _waterfall_signal_energy(broadcast, frequency, t)
 		row.append(clamp(intensity, 0.0, 1.0))
 	waterfall_rows.append(row)
 	if waterfall_rows.size() > WATERFALL_HISTORY:
 		waterfall_rows.pop_front()
+
+
+func _waterfall_signal_energy(broadcast: Dictionary, frequency: float, t: float) -> float:
+	var frequency_delta = abs(frequency - broadcast["frequency"])
+	var to_broadcast = broadcast["position"] - player_position
+	var distance_factor = clamp(1.0 - (to_broadcast.length() / (MAX_DISTANCE * 1.15)), 0.02, 1.0)
+	var base_strength = pow(distance_factor, 0.62)
+	var role_gain = 0.38
+	if broadcast["role"] == "target":
+		role_gain = 0.52
+	var activity = 0.82 + 0.2 * sin(t * 2.6 + broadcast["frequency"] * 1.7) + 0.12 * sin(t * 7.8 + broadcast["position"].x * 0.01)
+	var center_width = 0.026
+	var shoulder_width = 0.060
+	var center_peak = exp(-pow(frequency_delta / center_width, 2.0))
+	var shoulder_peak = exp(-pow(frequency_delta / shoulder_width, 2.0))
+	var dynamic_gain = base_strength * role_gain * activity
+	return center_peak * dynamic_gain + shoulder_peak * dynamic_gain * 0.34
 
 
 func _update_waterfall_texture() -> void:
@@ -965,6 +986,18 @@ func testing_set_df_frequency(value: float) -> void:
 	_sync_control_labels()
 
 
+func testing_tune_df_from_waterfall_ratio(ratio: float) -> void:
+	if waterfall_display == null:
+		return
+	var rect = waterfall_display.get_global_rect()
+	var clamped_ratio = clamp(ratio, 0.0, 1.0)
+	var click_position = Vector2(
+		rect.position.x + rect.size.x * clamped_ratio,
+		rect.position.y + rect.size.y * 0.5
+	)
+	_tune_df_to_waterfall_click(click_position)
+
+
 func testing_set_df_frequency_text(raw_text: String) -> void:
 	_apply_frequency_text(raw_text)
 
@@ -1072,3 +1105,16 @@ func testing_get_waterfall_summary() -> Dictionary:
 		"bright_bins": bright_bins,
 		"has_texture": waterfall_texture != null and waterfall_display != null and waterfall_display.texture != null
 	}
+
+
+func testing_get_waterfall_intensity_at_frequency(frequency: float) -> float:
+	if waterfall_rows.empty():
+		return 0.0
+	var ratio = (frequency - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
+	var bin_index = int(clamp(round(ratio * float(max(WATERFALL_BINS - 1, 1))), 0, WATERFALL_BINS - 1))
+	var total = 0.0
+	var samples = 0
+	for row in waterfall_rows:
+		total += float(row[bin_index])
+		samples += 1
+	return total / float(max(samples, 1))

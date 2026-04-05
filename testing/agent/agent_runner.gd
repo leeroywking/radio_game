@@ -44,6 +44,8 @@ func _run() -> void:
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
 		yield(_run_waterfall_visibility_case(), "completed"),
+		yield(_run_waterfall_click_tuning_case(), "completed"),
+		yield(_run_waterfall_station_energy_case(), "completed"),
 		yield(_run_scanner_lock_case(), "completed"),
 		yield(_run_fix_submission_case(), "completed"),
 		yield(_run_target_audio_continuity_case(false), "completed"),
@@ -143,6 +145,49 @@ func _run_waterfall_visibility_case() -> Dictionary:
 			"average_intensity": waterfall.get("average_intensity", 0.0),
 			"bright_bins": waterfall.get("bright_bins", 0),
 			"has_texture": waterfall.get("has_texture", false)
+		}
+	}
+
+
+func _run_waterfall_click_tuning_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.4), "timeout")
+	game.testing_tune_df_from_waterfall_ratio(0.625)
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var expected_frequency = stepify(lerp(144.0, 148.0, 0.625), 0.005)
+	return {
+		"name": "waterfall_click_tuning",
+		"pass": abs(snapshot["df_frequency"] - expected_frequency) < 0.0001,
+		"warning": false,
+		"details": {
+			"df_frequency": snapshot["df_frequency"],
+			"expected_frequency": expected_frequency
+		}
+	}
+
+
+func _run_waterfall_station_energy_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.8), "timeout")
+	var broadcasts = game.testing_get_broadcasts()
+	var strong_count := 0
+	var average_strength := 0.0
+	for broadcast in broadcasts:
+		var intensity = game.testing_get_waterfall_intensity_at_frequency(broadcast["frequency"])
+		average_strength += intensity
+		if intensity >= 0.12:
+			strong_count += 1
+	if broadcasts.size() > 0:
+		average_strength /= float(broadcasts.size())
+	return {
+		"name": "waterfall_station_energy",
+		"pass": strong_count >= broadcasts.size(),
+		"warning": false,
+		"details": {
+			"broadcast_count": broadcasts.size(),
+			"strong_count": strong_count,
+			"average_station_intensity": average_strength
 		}
 	}
 
