@@ -40,6 +40,15 @@ The current build includes:
 - `scenes/Main.tscn`
   Current HUD layout and all control widgets.
 
+- `export_presets.cfg`
+  Tracked export definitions for Linux, Windows, and HTML5 packaging.
+
+- `scripts/build_exports.sh`
+  Repeatable export entrypoint. Installs official Godot 3.5.3 export templates on demand and writes release artifacts into `dist/`.
+
+- `docs/distribution.md`
+  Explains the output folders and which files are intended for itch.io download uploads versus HTML5 browser uploads.
+
 - `docs/architecture.md`
   High-level product/system architecture direction.
 
@@ -76,4 +85,10 @@ Smoke tests used during development:
 ```bash
 ./run_demo.sh --quit
 timeout 3 ./run_demo.sh
+```
+
+Build packaging command:
+
+```bash
+./scripts/build_exports.sh
 ```

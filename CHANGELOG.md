@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- No changes yet after the initial git baseline.
+- Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.
+- Added `scripts/build_exports.sh` to download export templates and package release artifacts.
+- Added `docs/distribution.md` describing local outputs and itch.io upload paths.
+- Built release artifacts into `dist/` for desktop and browser distribution.
 
 ## 2026-04-05
 

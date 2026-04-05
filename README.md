@@ -37,6 +37,23 @@ If you used the local user-space runtime download during setup, you can also run
 
 Controls are documented in the in-game HUD and in [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md).
 
+## Building distributables
+
+The repository now includes a repeatable export pipeline for desktop and browser builds:
+
+```bash
+./scripts/build_exports.sh
+```
+
+This produces:
+
+- Linux desktop export
+- Windows desktop export
+- HTML5 browser export
+- itch.io-ready upload zips under `dist/itch/`
+
+See [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md) for the output layout and upload guidance.
+
 ## Audio source
 
 The demo now defaults to clean training-voice loops derived from clearer spoken-audio sources, then applies in-game degradation on top. The user can switch between clean training sources and a legacy radio sample in the HUD.

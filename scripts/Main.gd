@@ -446,7 +446,18 @@ func _apply_frequency_text(raw_text: String) -> void:
 	_sync_control_labels()
 
 
-func _load_wav_stream(path: String, should_loop: bool) -> AudioStreamSample:
+func _load_wav_stream(path: String, should_loop: bool) -> AudioStream:
+	var imported_stream = load(path)
+	if imported_stream != null:
+		if imported_stream is AudioStreamSample:
+			var sample_stream: AudioStreamSample = imported_stream.duplicate()
+			if should_loop:
+				sample_stream.loop_mode = AudioStreamSample.LOOP_FORWARD
+				sample_stream.loop_begin = 0
+				sample_stream.loop_end = sample_stream.data.size()
+			return sample_stream
+		return imported_stream
+
 	var file = File.new()
 	var err = file.open(path, File.READ)
 	if err != OK:
@@ -493,6 +504,11 @@ func _load_wav_stream(path: String, should_loop: bool) -> AudioStreamSample:
 
 
 func _load_map_texture() -> void:
+	var imported_texture = load(WA_HILLSHADE_PATH)
+	if imported_texture != null:
+		map_texture = imported_texture
+		return
+
 	var image = Image.new()
 	var err = image.load(WA_HILLSHADE_PATH)
 	if err != OK:
