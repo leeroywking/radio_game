@@ -1,9 +1,9 @@
 # Testing Agent Report
 
-Generated: {day:5, dst:True, hour:14, minute:27, month:4, second:28, weekday:0, year:2026}
+Generated: {day:5, dst:True, hour:14, minute:39, month:4, second:11, weekday:0, year:2026}
 
-- Cases: 9
-- Passed: 9
+- Cases: 10
+- Passed: 10
 - Failed: 0
 - Warnings: 2
 
@@ -25,11 +25,11 @@ Generated: {day:5, dst:True, hour:14, minute:27, month:4, second:28, weekday:0, 
 
 - Pass: True
 - Warning: False
-- row_count: 11
+- row_count: 10
 - bin_count: 72
-- max_intensity: 0.480234
-- average_intensity: 0.062857
-- bright_bins: 28
+- max_intensity: 0.45152
+- average_intensity: 0.064852
+- bright_bins: 31
 - has_texture: True
 
 ## waterfall_click_tuning
@@ -45,7 +45,16 @@ Generated: {day:5, dst:True, hour:14, minute:27, month:4, second:28, weekday:0, 
 - Warning: False
 - broadcast_count: 4
 - strong_count: 4
-- average_station_intensity: 0.294643
+- average_station_intensity: 0.285715
+
+## bearing_capture_audio_continuity
+
+- Pass: True
+- Warning: False
+- before_playback_position: 0.368662
+- after_playback_position: 0.533741
+- same_broadcast: True
+- df_stream_paused: False
 
 ## scanner_lock
 
@@ -72,7 +81,7 @@ Generated: {day:5, dst:True, hour:14, minute:27, month:4, second:28, weekday:0, 
 - low_voice_samples: 1
 - playback_resets: 0
 - min_voice_level: 0.678828
-- max_noise_level: 0.240267
+- max_noise_level: 0.304007
 - dropped_off_target: 0
 
 ## target_audio_continuity_clean
@@ -93,10 +102,11 @@ Generated: {day:5, dst:True, hour:14, minute:27, month:4, second:28, weekday:0, 
 
 - reset_randomization: unchanged
 - df_numeric_entry: unchanged
-- waterfall_visibility: pass_state_changed
+- waterfall_visibility: metrics_changed
 - waterfall_click_tuning: unchanged
-- waterfall_station_energy: pass_state_changed
-- scanner_lock: metrics_changed
+- waterfall_station_energy: metrics_changed
+- bearing_capture_audio_continuity: new_case
+- scanner_lock: unchanged
 - fix_submission: unchanged
-- target_audio_continuity_receiver: unchanged
+- target_audio_continuity_receiver: metrics_changed
 - target_audio_continuity_clean: unchanged

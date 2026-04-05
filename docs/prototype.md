@@ -61,6 +61,7 @@ The waterfall display is currently a fake but structured spectrogram:
 - The waterfall is rendered on a HUD texture surface so it remains visible above the panel chrome
 - Clicking the waterfall tunes the DF receiver to the selected displayed frequency
 - Waterfall peaks are now driven by the live station list and player-relative signal strength, not a generic band pattern
+- Capturing a bearing should no longer interrupt DF audio playback
 
 The stated task for the player is:
 

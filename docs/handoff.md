@@ -76,6 +76,7 @@ The current build includes:
 - The continuity test can prove stable target audio under ideal conditions, but it still warns when it does not observe a full audio-loop wrap during the sample window.
 - The waterfall now renders inside the HUD as a texture-backed display. This mattered because the old `Node2D` drawing path sat behind the opaque panel and could be effectively invisible even when waterfall data existed.
 - Clicking inside the waterfall now tunes the DF frequency. The display energy is also derived from the live `broadcasts` list and distance-based station strength, so it tracks the current scenario instead of a generic fake band texture.
+- Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
 
 ## Recommended next steps
 

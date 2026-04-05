@@ -46,6 +46,7 @@ func _run() -> void:
 		yield(_run_waterfall_visibility_case(), "completed"),
 		yield(_run_waterfall_click_tuning_case(), "completed"),
 		yield(_run_waterfall_station_energy_case(), "completed"),
+		yield(_run_bearing_capture_audio_continuity_case(), "completed"),
 		yield(_run_scanner_lock_case(), "completed"),
 		yield(_run_fix_submission_case(), "completed"),
 		yield(_run_target_audio_continuity_case(false), "completed"),
@@ -188,6 +189,35 @@ func _run_waterfall_station_energy_case() -> Dictionary:
 			"broadcast_count": broadcasts.size(),
 			"strong_count": strong_count,
 			"average_station_intensity": average_strength
+		}
+	}
+
+
+func _run_bearing_capture_audio_continuity_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-160, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.35), "timeout")
+	var before = game.testing_snapshot()
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.15), "timeout")
+	var after = game.testing_snapshot()
+	var same_broadcast = String(after["receiver_profile"]["broadcast_id"]) == TARGET_ID
+	var still_playing = not bool(after["df_stream_paused"])
+	var playback_advanced = float(after["df_playback_position"]) >= float(before["df_playback_position"])
+	return {
+		"name": "bearing_capture_audio_continuity",
+		"pass": same_broadcast and still_playing and playback_advanced,
+		"warning": false,
+		"details": {
+			"before_playback_position": before["df_playback_position"],
+			"after_playback_position": after["df_playback_position"],
+			"same_broadcast": same_broadcast,
+			"df_stream_paused": after["df_stream_paused"]
 		}
 	}
 

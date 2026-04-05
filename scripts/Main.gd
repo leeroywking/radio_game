@@ -81,6 +81,8 @@ var clean_monitor_enabled := false
 var df_frequency := 145.000
 var df_volume := 0.85
 var scanner_volume := 0.70
+var bearing_capture_audio_hold_timer := 0.0
+var bearing_capture_audio_hold_broadcast_id := ""
 
 var smoothed_voice_level := 0.0
 var smoothed_noise_level := 1.0
@@ -166,6 +168,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if bearing_capture_audio_hold_timer > 0.0:
+		bearing_capture_audio_hold_timer = max(0.0, bearing_capture_audio_hold_timer - delta)
+		if bearing_capture_audio_hold_timer <= 0.0:
+			bearing_capture_audio_hold_broadcast_id = ""
 	receiver_profile = _get_df_profile()
 	scanner_profile = _update_scanner(delta)
 	_update_audio_mix(receiver_profile)
@@ -285,6 +291,8 @@ func _capture_bearing() -> void:
 		"broadcast_id": reading["broadcast_id"],
 		"quality": reading["quality"]
 	})
+	bearing_capture_audio_hold_timer = 0.35
+	bearing_capture_audio_hold_broadcast_id = reading["broadcast_id"]
 	result_text = "Bearing captured on %.3f MHz." % df_frequency
 
 
@@ -528,6 +536,15 @@ func _load_map_texture() -> void:
 func _get_df_profile() -> Dictionary:
 	var active_broadcast = _find_df_broadcast()
 	if active_broadcast.empty():
+		if bearing_capture_audio_hold_timer > 0.0 and bearing_capture_audio_hold_broadcast_id != "":
+			return {
+				"voice_level": smoothed_voice_level,
+				"noise_level": smoothed_noise_level,
+				"quality": "captured",
+				"state": "hold",
+				"clarity_base": max(smoothed_voice_level, 0.0),
+				"broadcast_id": bearing_capture_audio_hold_broadcast_id
+			}
 		smoothed_voice_level = lerp(smoothed_voice_level, 0.0, 0.22)
 		smoothed_noise_level = lerp(smoothed_noise_level, 0.36, 0.18)
 		return {

@@ -11,6 +11,7 @@
 - Replaced the decorative waterfall with a fake full-band waterfall showing simulated energy by frequency over time.
 - Fixed the waterfall rendering path by moving it into the HUD layer and added an automated visibility test for it.
 - Added click-to-tune behavior on the waterfall and fed the waterfall from live station data with automated tests for tuning and station-aligned energy.
+- Fixed DF audio dropping during bearing capture and added an automated bearing-capture audio continuity test.
 
 ## 2026-04-05
 
