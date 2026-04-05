@@ -8,6 +8,7 @@
 - Built release artifacts into `dist/` for desktop and browser distribution.
 - Added a headless gameplay testing agent under `testing/`.
 - Added an initial automated behavior report under `testing/reports/`.
+- Replaced the decorative waterfall with a fake full-band waterfall showing simulated energy by frequency over time.
 
 ## 2026-04-05
 

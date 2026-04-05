@@ -74,6 +74,7 @@ The current build includes:
 - The map is a real hillshade, but the gameplay layer on top of it is still sparse.
 - The signal model is intentionally simplified and not terrain-aware yet.
 - The continuity test can prove stable target audio under ideal conditions, but it still warns when it does not observe a full audio-loop wrap during the sample window.
+- The waterfall now behaves like a fake full-band spectrogram with bottom frequency labels and energy peaks aligned to broadcast frequencies. It is still not fed by a real RF model or FFT.
 
 ## Recommended next steps
 

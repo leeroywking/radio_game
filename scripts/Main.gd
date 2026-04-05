@@ -9,6 +9,7 @@ const MAX_DISTANCE := 900.0
 const OVERLOAD_DISTANCE := 70.0
 const SCOPE_RECT := Rect2(Vector2(32, 204), Vector2(322, 72))
 const WATERFALL_RECT := Rect2(Vector2(32, 324), Vector2(322, 92))
+const WATERFALL_LABEL_HEIGHT := 18.0
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
 const SCANNER_MIN_FREQ := 144.000
@@ -280,6 +281,7 @@ func _draw_waterfall() -> void:
 				Rect2(Vector2(px, py), Vector2(cell_w + 1.0, cell_h + 1.0)),
 				_waterfall_color(intensity)
 			)
+	_draw_waterfall_scale()
 
 
 func _capture_bearing() -> void:
@@ -783,14 +785,76 @@ func _push_waterfall_row(delta: float) -> void:
 	var row = []
 	var t = OS.get_ticks_msec() * 0.001
 	for bin_index in range(WATERFALL_BINS):
-		var ratio = float(bin_index) / float(WATERFALL_BINS - 1)
-		var band_wave = 0.22 + 0.18 * sin(t * 1.3 + ratio * 11.0)
-		var ripple = 0.16 * sin(t * 4.7 + ratio * 31.0 + sin(t * 0.9))
-		var sparkle = rand_range(0.0, 0.12)
-		row.append(clamp(band_wave + ripple + sparkle, 0.0, 1.0))
+		var ratio = float(bin_index) / float(max(WATERFALL_BINS - 1, 1))
+		var frequency = lerp(SCANNER_MIN_FREQ, SCANNER_MAX_FREQ, ratio)
+		var ambient_floor = 0.05 + 0.025 * sin(t * 0.65 + ratio * 9.0)
+		var ripple = 0.018 * sin(t * 5.4 + ratio * 34.0 + sin(t * 0.8))
+		var sparkle = rand_range(0.0, 0.018)
+		var intensity = ambient_floor + ripple + sparkle
+		for broadcast in broadcasts:
+			var frequency_delta = abs(frequency - broadcast["frequency"])
+			var band_width = 0.028
+			var peak = exp(-pow(frequency_delta / band_width, 2.0))
+			var role_gain = 0.0
+			if broadcast["role"] == "target":
+				role_gain = 0.36 + 0.08 * sin(t * 1.5 + frequency * 3.0)
+			else:
+				role_gain = 0.22 + 0.06 * sin(t * 1.2 + frequency * 4.0 + float(bin_index) * 0.03)
+			var pulse = 0.9 + 0.1 * sin(t * 8.0 + frequency_delta * 17.0 + float(bin_index) * 0.1)
+			intensity += peak * role_gain * pulse
+			var shoulder = exp(-pow(frequency_delta / 0.055, 2.0)) * 0.065
+			intensity += shoulder
+		row.append(clamp(intensity, 0.0, 1.0))
 	waterfall_rows.append(row)
 	if waterfall_rows.size() > WATERFALL_HISTORY:
 		waterfall_rows.pop_front()
+
+
+func _draw_waterfall_scale() -> void:
+	var scale_rect = Rect2(
+		Vector2(WATERFALL_RECT.position.x, WATERFALL_RECT.end.y + 2.0),
+		Vector2(WATERFALL_RECT.size.x, WATERFALL_LABEL_HEIGHT)
+	)
+	draw_rect(scale_rect, Color(0.03, 0.04, 0.06))
+	draw_line(
+		Vector2(scale_rect.position.x, scale_rect.position.y),
+		Vector2(scale_rect.end.x, scale_rect.position.y),
+		Color(0.74, 0.83, 0.88, 0.12),
+		1.0
+	)
+	for mhz in range(int(floor(SCANNER_MIN_FREQ)), int(ceil(SCANNER_MAX_FREQ)) + 1):
+		var ratio = (float(mhz) - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
+		var x = lerp(scale_rect.position.x, scale_rect.end.x, clamp(ratio, 0.0, 1.0))
+		draw_line(
+			Vector2(x, scale_rect.position.y + 1.0),
+			Vector2(x, scale_rect.position.y + 8.0),
+			Color(0.74, 0.83, 0.88, 0.45),
+			1.0
+		)
+		var scale_font = status_label.get_font("font")
+		if scale_font != null:
+			draw_string(
+				scale_font,
+				Vector2(x - 11.0, scale_rect.position.y + 17.0),
+				"%d" % mhz,
+				Color(0.82, 0.87, 0.91)
+			)
+	var df_ratio = (df_frequency - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
+	var df_x = lerp(WATERFALL_RECT.position.x, WATERFALL_RECT.end.x, clamp(df_ratio, 0.0, 1.0))
+	draw_line(
+		Vector2(df_x, WATERFALL_RECT.position.y),
+		Vector2(df_x, scale_rect.end.y),
+		Color(0.98, 0.91, 0.46, 0.75),
+		1.0
+	)
+	var scanner_ratio = (scanner_profile["frequency"] - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
+	var scanner_x = lerp(WATERFALL_RECT.position.x, WATERFALL_RECT.end.x, clamp(scanner_ratio, 0.0, 1.0))
+	draw_line(
+		Vector2(scanner_x, WATERFALL_RECT.position.y),
+		Vector2(scanner_x, scale_rect.end.y),
+		Color(0.48, 0.82, 0.96, 0.55),
+		1.0
+	)
 
 
 func _audio_summary(reading: Dictionary) -> String:

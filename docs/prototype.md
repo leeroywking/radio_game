@@ -16,7 +16,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Optional clean-monitor playback for hearing the source without simulated degradation
 - Simulated voice reception instead of a numeric strength readout
 - Receiver scope feedback tied to the current audio state
-- Waterfall display for the tuned DF receiver
+- Full-band waterfall display across the scannable range
 - Independent DF and scanner audio volume controls
 - Per-source stereo routing controls
 - Aim-quality feedback
@@ -51,6 +51,13 @@ The demo now includes a simplified scanner path:
 - The player can unlock the scanner and resume hunting
 - The DF receiver and scanner have separate volume controls
 - Each broadcaster can be routed to left, right, or both channels for demo and training experiments
+
+The waterfall display is currently a fake but structured spectrogram:
+
+- Frequency runs left-to-right across the full scan range
+- Time scrolls downward
+- Color intensity represents stronger simulated energy at each frequency
+- Active broadcast frequencies show brighter vertical traces and pulsing energy
 
 The stated task for the player is:
 

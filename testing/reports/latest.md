@@ -1,6 +1,6 @@
 # Testing Agent Report
 
-Generated: {day:5, dst:True, hour:14, minute:9, month:4, second:20, weekday:0, year:2026}
+Generated: {day:5, dst:True, hour:14, minute:15, month:4, second:17, weekday:0, year:2026}
 
 - Cases: 6
 - Passed: 6
@@ -46,7 +46,7 @@ Generated: {day:5, dst:True, hour:14, minute:9, month:4, second:20, weekday:0, y
 - low_voice_samples: 0
 - playback_resets: 0
 - min_voice_level: 0.915655
-- max_noise_level: 0.004192
+- max_noise_level: 0.004438
 - dropped_off_target: 0
 
 ## target_audio_continuity_clean
