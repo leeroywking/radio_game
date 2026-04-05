@@ -8,11 +8,13 @@ Run it with:
 ./testing/run_agent.sh
 ```
 
-The agent instantiates the real main scene, drives core game actions through test hooks, and writes reports to:
+The agent instantiates the real main scene, drives core game actions through test hooks, and writes local runtime reports to:
 
 - `testing/reports/latest.json`
 - `testing/reports/latest.md`
 - `testing/reports/previous.json`
+
+These report files are intentionally untracked. CI uploads them as artifacts, and local runs regenerate them in place.
 
 Current coverage:
 

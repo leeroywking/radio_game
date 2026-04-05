@@ -49,7 +49,7 @@ The repository now includes a headless gameplay testing agent:
 ./testing/run_agent.sh
 ```
 
-It exercises the real main scene, writes reports into `testing/reports/`, and compares the latest run with the previous one.
+It exercises the real main scene, writes local runtime reports into `testing/reports/`, and compares the latest run with the previous one.
 
 See [testing/README.md](/home/ein/projects/simple_game/testing/README.md) for coverage and report files.
 
