@@ -2,11 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GODOT_BIN="$ROOT_DIR/tools/godot3/Godot_v3.5.3-stable_x11.64"
-GODOT_VERSION="3.5.3.stable"
+# renovate: datasource=github-releases depName=godotengine/godot versioning=loose
+GODOT_RELEASE="3.5.3-stable"
+GODOT_BIN="$ROOT_DIR/tools/godot3/Godot_v${GODOT_RELEASE}_x11.64"
+GODOT_VERSION="${GODOT_RELEASE/-/.}"
 TEMPLATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/templates/$GODOT_VERSION"
-TEMPLATE_ARCHIVE="$ROOT_DIR/tools/export_templates/Godot_v3.5.3-stable_export_templates.tpz"
-TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/3.5.3-stable/Godot_v3.5.3-stable_export_templates.tpz"
+TEMPLATE_ARCHIVE="$ROOT_DIR/tools/export_templates/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
