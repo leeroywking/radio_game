@@ -12,6 +12,7 @@
 - Fixed the waterfall rendering path by moving it into the HUD layer and added an automated visibility test for it.
 - Added click-to-tune behavior on the waterfall and fed the waterfall from live station data with automated tests for tuning and station-aligned energy.
 - Fixed DF audio dropping during bearing capture and added an automated bearing-capture audio continuity test.
+- Refreshed the automated test baseline and rebuilt Linux, Windows, and HTML5 distribution artifacts.
 
 ## 2026-04-05
 

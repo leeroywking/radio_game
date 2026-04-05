@@ -9,11 +9,15 @@ The current build includes:
 - A real USGS Washington hillshade map backdrop
 - Multiple simultaneous broadcasters with one designated as the real target conversation
 - DF receiver tuning by slider and direct numeric entry
+- Click-to-tune frequency selection from the waterfall
 - A manual-start autoscanner with lock and unlock behavior
 - Separate DF and scanner volume controls
-- A placeholder waterfall element that is visual only and not yet tied to the signal model
+- A visible full-band waterfall rendered in the HUD
+- Waterfall energy driven by the live station list and player-relative strength
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
+- A short DF-audio hold during bearing capture so `Space` does not cut playback
 - Bearing capture, fix placement, and scoring
+- A headless gameplay testing agent with comparison against the previous run
 
 ## Key learnings
 
@@ -70,7 +74,6 @@ The current build includes:
 ## Current rough edges
 
 - The HUD still feels crowded.
-- The waterfall is placeholder-only and not frequency-linked yet.
 - The map is a real hillshade, but the gameplay layer on top of it is still sparse.
 - The signal model is intentionally simplified and not terrain-aware yet.
 - The continuity test can prove stable target audio under ideal conditions, but it still warns when it does not observe a full audio-loop wrap during the sample window.
@@ -81,7 +84,7 @@ The current build includes:
 ## Recommended next steps
 
 1. Refactor the HUD into clearer sections or multiple panels before adding more controls.
-2. Convert the waterfall from decorative animation into a real full-band frequency display.
+2. Evolve the current fake-but-live waterfall into a truer receiver-band model or FFT-driven display.
 3. Add a stronger mission loop around identifying the target frequency before triangulation.
 4. Introduce terrain-aware attenuation only after the current interaction loop feels stable.
 
