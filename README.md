@@ -1,89 +1,120 @@
 # Rabbit Hunt Trainer
 
-This repository contains the architecture notes and a first playable prototype for a radio direction finding training game.
+[![CI](https://github.com/leeroywking/radio_game/actions/workflows/ci.yml/badge.svg)](https://github.com/leeroywking/radio_game/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/demo-GitHub%20Pages-blue)](https://leeroywking.github.io/radio_game/)
+[![Latest Release](https://img.shields.io/github/v/release/leeroywking/radio_game?display_name=release)](https://github.com/leeroywking/radio_game/releases/latest)
+[![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-lightgrey)](./LICENSE)
 
-The current prototype demonstrates the core learning loop:
+Radio direction-finding training prototype built in Godot. The current gameplay loop teaches players to tune a DF receiver, sort target audio from decoys, capture bearings, and place a fix.
 
-- Move around a top-down map
-- Tune a directional receiver to one of several live broadcasts
-- Trigger an autoscanner that sweeps for active audio and locks onto a transmission
-- Interpret a receiver scope, waterfall display, and simulated voice reception
-- Separate the real conversation from educational decoys
-- Route each broadcast to the left channel, right channel, or both
-- Capture bearings from multiple positions
-- Place an estimated fix and submit it for scoring
+## Status
 
-See [docs/architecture.md](/home/ein/projects/simple_game/docs/architecture.md) for the long-term architecture and [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md) for the current demo scope.
+- Project stage: prototype / pre-alpha
+- Primary demo: GitHub Pages HTML5 build
+- Maintained areas: gameplay prototype, CI, export packaging, testing agent
+- Current focus: turning the training loop into a cleaner product/repo baseline
 
-Live demo:
+## Links
 
-- GitHub Pages HTML5 build: https://leeroywking.github.io/radio_game/
+- Live demo: https://leeroywking.github.io/radio_game/
+- Latest release: https://github.com/leeroywking/radio_game/releases/latest
+- Architecture notes: [docs/architecture.md](/home/ein/projects/simple_game/docs/architecture.md)
+- Prototype scope: [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md)
+- Distribution notes: [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md)
 
-## Engine choice
+## Requirements
 
-The recommended production engine is Godot 4.x because it is a strong fit for low-budget 2D pixel-art simulation work.
+- Godot runtime: `3.5.3-stable` for the local prototype tooling in this repo
+- Platform for local runs: Linux with `godot3` or the downloaded user-space runtime
+- Browser demo: modern desktop browser with WebAssembly support
 
-The local runnable prototype in this repository targets Godot 3.5-compatible scene/script formats so it can be executed in this environment if `godot3` is installed.
+## Compatibility
 
-## Running the prototype
+| Area | Status |
+| --- | --- |
+| Linux desktop export | Supported |
+| Windows desktop export | Supported |
+| HTML5 / browser demo | Supported |
+| macOS export | Not wired in this repo |
+| Godot 4 production direction | Recommended target, not the current prototype runtime |
 
-From the repository root:
+## Quickstart
 
-```bash
-godot3 --path .
-```
-
-If you used the local user-space runtime download during setup, you can also run:
+Run the game:
 
 ```bash
 ./run_demo.sh
 ```
 
-Controls are documented in the in-game HUD and in [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md).
-
-## Automated testing
-
-The repository now includes a headless gameplay testing agent:
+Run the headless test agent:
 
 ```bash
 ./testing/run_agent.sh
 ```
 
-It exercises the real main scene, writes local runtime reports into `testing/reports/`, and compares the latest run with the previous one.
-
-See [testing/README.md](/home/ein/projects/simple_game/testing/README.md) for coverage and report files.
-
-GitHub Actions CI is configured in [.github/workflows/ci.yml](/home/ein/projects/simple_game/.github/workflows/ci.yml) to run the headless test agent and export builds on push and pull request. Pushes to `master` or `main` also update a rolling GitHub release named `Prototype Latest` with the built artifacts and deploy the HTML5 build to GitHub Pages.
-
-## Building distributables
-
-The repository now includes a repeatable export pipeline for desktop and browser builds:
+Build desktop and browser artifacts:
 
 ```bash
 ./scripts/build_exports.sh
 ```
 
-This produces:
+The test agent writes local runtime reports into `testing/reports/`, compares the current run to the previous one, and CI uploads those reports as artifacts.
 
-- Linux desktop export
-- Windows desktop export
-- HTML5 browser export
-- itch.io-ready upload zips under `dist/itch/`
+## What The Prototype Covers
 
-See [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md) for the output layout and upload guidance.
+- Top-down movement on a real Washington hillshade map
+- DF tuning by direct frequency entry, slider, or waterfall click
+- Full-band waterfall display
+- Scanner sweep, lock, and unlock behavior
+- Audio discrimination between the real conversation and educational decoys
+- Bearing capture and fix submission
+- A startup welcome modal explaining the hunt flow
 
-## Audio source
+## Releases And Downloads
 
-The demo now defaults to clean training-voice loops derived from clearer spoken-audio sources, then applies in-game degradation on top. The user can switch between clean training sources and a legacy radio sample in the HUD.
+The repo publishes a rolling `Prototype Latest` release on successful pushes to `master` or `main`.
 
-Primary source files used for the clean training presets:
+Release artifacts include:
+
+- Linux desktop zip
+- Windows desktop zip
+- HTML5 browser zip
+
+For local output paths and packaging details, see [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md).
+
+## Contributor Quickstart
+
+- Start from a short-lived branch
+- Open a PR against `master`
+- Keep changes focused
+- Run relevant verification before pushing
+
+Preferred local checks:
+
+```bash
+./run_demo.sh --quit
+./testing/run_agent.sh
+./scripts/build_exports.sh
+```
+
+See [CONTRIBUTING.md](/home/ein/projects/simple_game/CONTRIBUTING.md) for the repo workflow.
+
+## Roadmap
+
+- Improve repo hardening and maintenance automation
+- Refine onboarding and user-facing training flow
+- Push the fake-but-useful waterfall and RF simulation toward a more realistic model
+- Expand scenarios, terrain effects, and mission progression
+
+## Audio Sources
+
+The demo defaults to cleaner training-voice loops and then applies in-game degradation on top.
+
+Primary clean training sources:
 
 - `Wikipedia - Human voice (spoken by AI voice).mp3`, Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Wikipedia_-_Human_voice_(spoken_by_AI_voice).mp3
 - `Wikipedia - Umbriel (spoken by AI voice).mp3`, Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Wikipedia_-_Umbriel_(spoken_by_AI_voice).mp3
 
-Legacy radio sample kept for comparison:
+Legacy comparison sample:
 
-- `Ham Contest Exchange.ogg`, described as a typical ham radio contest exchange by Meisam, licensed CC0 1.0
-- Source page: https://commons.wikimedia.org/wiki/File:Ham_Contest_Exchange.ogg
-
-The repository keeps downloaded source files plus locally converted WAV clips for runtime playback.
+- `Ham Contest Exchange.ogg`, Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Ham_Contest_Exchange.ogg

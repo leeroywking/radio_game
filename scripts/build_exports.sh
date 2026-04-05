@@ -9,12 +9,19 @@ GODOT_VERSION="${GODOT_RELEASE/-/.}"
 TEMPLATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/templates/$GODOT_VERSION"
 TEMPLATE_ARCHIVE="$ROOT_DIR/tools/export_templates/Godot_v${GODOT_RELEASE}_export_templates.tpz"
 TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+TEMPLATE_SHA256="ae3c1f6fbd431b9e3b67c1f9e42539a6d270a0ccc35558f13072f04b968312d1"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Missing required command: $1" >&2
     exit 1
   fi
+}
+
+verify_sha256() {
+  local expected_sha="$1"
+  local file_path="$2"
+  echo "$expected_sha  $file_path" | sha256sum --check --
 }
 
 download_file() {
@@ -42,6 +49,7 @@ fi
 
 require_cmd unzip
 require_cmd zip
+require_cmd sha256sum
 
 mkdir -p "$ROOT_DIR/dist/staging/linux" \
   "$ROOT_DIR/dist/staging/windows" \
@@ -56,6 +64,7 @@ if [[ ! -d "$TEMPLATE_DIR" ]]; then
     echo "Downloading Godot export templates..."
     download_file "$TEMPLATE_URL" "$TEMPLATE_ARCHIVE"
   fi
+  verify_sha256 "$TEMPLATE_SHA256" "$TEMPLATE_ARCHIVE"
 
   rm -rf "$TEMPLATE_DIR"
   mkdir -p "$TEMPLATE_DIR"
