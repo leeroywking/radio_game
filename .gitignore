@@ -1,0 +1,7 @@
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+.venv/
+tools/godot3/
+tools/godot3.zip
