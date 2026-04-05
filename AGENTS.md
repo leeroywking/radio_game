@@ -26,3 +26,11 @@
 
 - Update agent-facing docs when workflow expectations change.
 - Keep `docs/workflow.md` and `docs/handoff.md` aligned with these instructions.
+
+## Execution Policy
+
+- Do not stop at a partial implementation when the task can reasonably be carried through to review-ready state.
+- Continue working until one of these is true:
+  - the change is ready for human review with code, verification, and a PR
+  - you hit a real blocker that cannot be resolved safely without user input
+- If the work touches GitHub state or automation, push the branch and open the PR instead of leaving the change only in the local workspace.

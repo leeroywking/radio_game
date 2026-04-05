@@ -41,6 +41,7 @@ func _run() -> void:
 	}
 
 	var cases = [
+		yield(_run_welcome_modal_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
@@ -82,6 +83,24 @@ func _run() -> void:
 		push_error(error_text)
 	yield(_wait_seconds(0.1), "timeout")
 	quit(exit_code)
+
+
+func _run_welcome_modal_case() -> Dictionary:
+	var before = game.testing_snapshot()
+	var initially_visible = bool(before.get("welcome_modal_visible", false))
+	game.testing_dismiss_welcome_modal()
+	yield(_wait_seconds(0.05), "timeout")
+	var after = game.testing_snapshot()
+	var dismissed = not bool(after.get("welcome_modal_visible", true))
+	return {
+		"name": "welcome_modal",
+		"pass": initially_visible and dismissed,
+		"warning": false,
+		"details": {
+			"initially_visible": initially_visible,
+			"dismissed": dismissed
+		}
+	}
 
 
 func _run_reset_randomization_case() -> Dictionary:

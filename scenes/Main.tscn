@@ -12,6 +12,53 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
+[node name="WelcomeModal" type="ColorRect" parent="HUD/Root"]
+visible = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+color = Color( 0, 0, 0, 0.72 )
+
+[node name="WelcomePanel" type="Panel" parent="HUD/Root/WelcomeModal"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -270.0
+margin_top = -170.0
+margin_right = 270.0
+margin_bottom = 170.0
+
+[node name="WelcomeTitle" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
+margin_left = 24.0
+margin_top = 20.0
+margin_right = 516.0
+margin_bottom = 48.0
+text = "Welcome To Rabbit Hunt Trainer"
+
+[node name="WelcomeBody" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
+margin_left = 24.0
+margin_top = 58.0
+margin_right = 516.0
+margin_bottom = 250.0
+text = "Mission: find the real conversation and ignore the educational content.\n\nHow to play:\n- Move with WASD and point the DF antenna with the mouse.\n- Tune the DF receiver by typing a frequency, dragging the slider, or clicking the waterfall.\n- Listen for the clearest copy on the real conversation while using the scanner as a search tool.\n- Press Space from two or more locations to capture bearings.\n- Click the map to place your estimated fix, then press Submit.\n\nHelpful controls:\n- F starts the scanner\n- Unlock drops the current scanner lock\n- C toggles clean monitor"
+autowrap = true
+
+[node name="WelcomeHint" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
+margin_left = 24.0
+margin_top = 258.0
+margin_right = 516.0
+margin_bottom = 280.0
+text = "Start the hunt when you're ready."
+align = 1
+
+[node name="WelcomeButton" type="Button" parent="HUD/Root/WelcomeModal/WelcomePanel"]
+margin_left = 196.0
+margin_top = 292.0
+margin_right = 344.0
+margin_bottom = 320.0
+text = "Start Hunt"
+
 [node name="Panel" type="Panel" parent="HUD/Root"]
 margin_left = 16.0
 margin_top = 16.0

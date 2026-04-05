@@ -1,11 +1,18 @@
 # Testing Agent Report
 
-Generated: {day:5, dst:True, hour:15, minute:27, month:4, second:19, weekday:0, year:2026}
+Generated: {day:5, dst:True, hour:15, minute:58, month:4, second:13, weekday:0, year:2026}
 
-- Cases: 12
-- Passed: 12
+- Cases: 13
+- Passed: 13
 - Failed: 0
 - Warnings: 2
+
+## welcome_modal
+
+- Pass: True
+- Warning: False
+- initially_visible: True
+- dismissed: True
 
 ## reset_randomization
 
@@ -38,7 +45,7 @@ Generated: {day:5, dst:True, hour:15, minute:27, month:4, second:19, weekday:0, 
 - broadcast_id: real_conversation
 - df_has_stream: True
 - df_stream_paused: False
-- df_playback_position: 0.165079
+- df_playback_position: 0.141451
 - df_voice_volume_db: -0.505691
 
 ## waterfall_visibility
@@ -47,9 +54,9 @@ Generated: {day:5, dst:True, hour:15, minute:27, month:4, second:19, weekday:0, 
 - Warning: False
 - row_count: 11
 - bin_count: 72
-- max_intensity: 0.458013
-- average_intensity: 0.060443
-- bright_bins: 30
+- max_intensity: 0.507492
+- average_intensity: 0.061517
+- bright_bins: 27
 - has_texture: True
 
 ## waterfall_click_tuning
@@ -65,14 +72,14 @@ Generated: {day:5, dst:True, hour:15, minute:27, month:4, second:19, weekday:0, 
 - Warning: False
 - broadcast_count: 4
 - strong_count: 4
-- average_station_intensity: 0.257531
+- average_station_intensity: 0.316436
 
 ## bearing_capture_audio_continuity
 
 - Pass: True
 - Warning: False
-- before_playback_position: 0.392336
-- after_playback_position: 0.580907
+- before_playback_position: 0.392063
+- after_playback_position: 0.557188
 - same_broadcast: True
 - df_stream_paused: False
 
@@ -80,8 +87,8 @@ Generated: {day:5, dst:True, hour:15, minute:27, month:4, second:19, weekday:0, 
 
 - Pass: True
 - Warning: False
-- locked_broadcast_id: real_conversation
-- scanner_frequency: 145.2
+- locked_broadcast_id: lesson_bravo
+- scanner_frequency: 145.41
 
 ## fix_submission
 
@@ -120,10 +127,11 @@ Generated: {day:5, dst:True, hour:15, minute:27, month:4, second:19, weekday:0, 
 
 ## Comparison
 
+- welcome_modal: new_case
 - reset_randomization: unchanged
 - df_numeric_entry: unchanged
-- df_audio_audible: metrics_changed
-- df_audio_restart: metrics_changed
+- df_audio_audible: unchanged
+- df_audio_restart: unchanged
 - waterfall_visibility: metrics_changed
 - waterfall_click_tuning: unchanged
 - waterfall_station_energy: metrics_changed
