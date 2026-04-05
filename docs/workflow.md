@@ -2,15 +2,21 @@
 
 ## Branching
 
-For future work, prefer short-lived branches from the current baseline.
+For future work, use short-lived branches from the current baseline by default.
 
 Suggested pattern:
 
-- `main` or `master` stays runnable
+- `main` or `master` stays runnable and should not be used for day-to-day implementation work
 - Feature branches use names like:
   - `feature/waterfall-real-data`
   - `feature/hud-reflow`
   - `fix/reset-randomization`
+
+Required policy:
+
+- Start new work on a branch unless the user explicitly asks for direct default-branch changes.
+- Open a PR before merging whenever practical.
+- Treat direct `master` or `main` commits as exceptions for urgent CI or release repair only.
 
 ## Commit style
 
