@@ -45,6 +45,7 @@ jobs:
         run: xvfb-run -a ./scripts/build_exports.sh
 
       - name: Upload test reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: testing-reports

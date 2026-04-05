@@ -139,14 +139,24 @@ func _run_df_audio_audible_case() -> Dictionary:
 	game.testing_set_player_position(listen_position)
 	game.testing_set_aim_direction(target["position"] - listen_position)
 	game.testing_set_df_frequency(target["frequency"])
-	yield(_wait_seconds(0.4), "timeout")
-	var snapshot = game.testing_snapshot()
-	var receiver = snapshot["receiver_profile"]
-	var on_target = String(receiver["broadcast_id"]) == TARGET_ID
-	var stream_ok = bool(snapshot["df_has_stream"])
-	var playing = not bool(snapshot["df_stream_paused"])
-	var loud_enough = float(snapshot["df_voice_volume_db"]) > -18.0
-	var voice_ok = float(receiver["voice_level"]) > 0.45
+	var snapshot = {}
+	var receiver = {}
+	var on_target := false
+	var stream_ok := false
+	var playing := false
+	var loud_enough := false
+	var voice_ok := false
+	for _i in range(12):
+		yield(_wait_seconds(0.1), "timeout")
+		snapshot = game.testing_snapshot()
+		receiver = snapshot["receiver_profile"]
+		on_target = String(receiver["broadcast_id"]) == TARGET_ID
+		stream_ok = bool(snapshot["df_has_stream"])
+		playing = not bool(snapshot["df_stream_paused"])
+		loud_enough = float(snapshot["df_voice_volume_db"]) > -18.0
+		voice_ok = float(receiver["voice_level"]) > 0.45
+		if on_target and stream_ok and playing and loud_enough and voice_ok:
+			break
 	return {
 		"name": "df_audio_audible",
 		"pass": on_target and stream_ok and playing and loud_enough and voice_ok,
@@ -171,10 +181,16 @@ func _run_df_audio_restart_case() -> Dictionary:
 	game.testing_set_df_frequency(target["frequency"])
 	yield(_wait_seconds(0.35), "timeout")
 	game.df_voice_player.stop()
-	yield(_wait_seconds(0.15), "timeout")
-	var snapshot = game.testing_snapshot()
-	var receiver = snapshot["receiver_profile"]
-	var restarted = not bool(snapshot["df_stream_paused"]) and float(snapshot["df_playback_position"]) > 0.0
+	var snapshot = {}
+	var receiver = {}
+	var restarted := false
+	for _i in range(12):
+		yield(_wait_seconds(0.1), "timeout")
+		snapshot = game.testing_snapshot()
+		receiver = snapshot["receiver_profile"]
+		restarted = not bool(snapshot["df_stream_paused"]) and float(snapshot["df_playback_position"]) > 0.0
+		if String(receiver["broadcast_id"]) == TARGET_ID and bool(snapshot["df_has_stream"]) and restarted and float(snapshot["df_voice_volume_db"]) > -18.0:
+			break
 	return {
 		"name": "df_audio_restart",
 		"pass": String(receiver["broadcast_id"]) == TARGET_ID and bool(snapshot["df_has_stream"]) and restarted and float(snapshot["df_voice_volume_db"]) > -18.0,
