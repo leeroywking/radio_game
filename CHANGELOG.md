@@ -6,6 +6,8 @@
 - Added `scripts/build_exports.sh` to download export templates and package release artifacts.
 - Added `docs/distribution.md` describing local outputs and itch.io upload paths.
 - Built release artifacts into `dist/` for desktop and browser distribution.
+- Added a headless gameplay testing agent under `testing/`.
+- Added an initial automated behavior report under `testing/reports/`.
 
 ## 2026-04-05
 

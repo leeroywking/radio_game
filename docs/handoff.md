@@ -49,6 +49,15 @@ The current build includes:
 - `docs/distribution.md`
   Explains the output folders and which files are intended for itch.io download uploads versus HTML5 browser uploads.
 
+- `testing/run_agent.sh`
+  Runs the headless gameplay testing agent against the real main scene.
+
+- `testing/agent/agent_runner.gd`
+  Drives gameplay actions, collects telemetry, compares against the previous run, and writes behavior reports.
+
+- `testing/reports/latest.md`
+  Current baseline behavior report from the testing agent.
+
 - `docs/architecture.md`
   High-level product/system architecture direction.
 
@@ -64,6 +73,7 @@ The current build includes:
 - The waterfall is placeholder-only and not frequency-linked yet.
 - The map is a real hillshade, but the gameplay layer on top of it is still sparse.
 - The signal model is intentionally simplified and not terrain-aware yet.
+- The continuity test can prove stable target audio under ideal conditions, but it still warns when it does not observe a full audio-loop wrap during the sample window.
 
 ## Recommended next steps
 
@@ -91,4 +101,10 @@ Build packaging command:
 
 ```bash
 ./scripts/build_exports.sh
+```
+
+Automated testing command:
+
+```bash
+./testing/run_agent.sh
 ```

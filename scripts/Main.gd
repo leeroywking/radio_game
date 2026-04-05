@@ -107,6 +107,9 @@ var scanner_profile = {
 	"broadcast_id": ""
 }
 
+var testing_aim_override_enabled := false
+var testing_aim_direction := Vector2.RIGHT
+
 onready var status_label := $HUD/Root/Panel/Status
 onready var submit_button := $HUD/Root/Panel/SubmitButton
 onready var reset_button := $HUD/Root/Panel/ResetButton
@@ -694,6 +697,8 @@ func _find_scanner_candidate(frequency: float) -> Dictionary:
 
 
 func _get_aim_vector() -> Vector2:
+	if testing_aim_override_enabled and testing_aim_direction.length() > 0.001:
+		return testing_aim_direction.normalized()
 	var aim = get_viewport().get_mouse_position() - player_position
 	if aim.length() < 0.001:
 		return Vector2.RIGHT
@@ -906,3 +911,92 @@ func _random_broadcast_frequency(used_frequencies: Array, broadcast_id: String, 
 			return candidate
 		attempt += 1
 	return fallback
+
+
+func testing_set_player_position(position: Vector2) -> void:
+	player_position = position
+
+
+func testing_set_df_frequency(value: float) -> void:
+	df_frequency = stepify(clamp(value, SCANNER_MIN_FREQ, SCANNER_MAX_FREQ), SCANNER_STEP)
+	if df_frequency_slider != null:
+		df_frequency_slider.value = df_frequency
+	_sync_control_labels()
+
+
+func testing_set_df_frequency_text(raw_text: String) -> void:
+	_apply_frequency_text(raw_text)
+
+
+func testing_set_aim_direction(direction: Vector2) -> void:
+	if direction.length() <= 0.001:
+		testing_aim_override_enabled = false
+		testing_aim_direction = Vector2.RIGHT
+		return
+	testing_aim_override_enabled = true
+	testing_aim_direction = direction.normalized()
+
+
+func testing_clear_aim_override() -> void:
+	testing_aim_override_enabled = false
+	testing_aim_direction = Vector2.RIGHT
+
+
+func testing_set_fix_position(position: Vector2) -> void:
+	fix_position = position
+
+
+func testing_capture_bearing() -> void:
+	_capture_bearing()
+
+
+func testing_submit_fix() -> void:
+	_submit_fix()
+
+
+func testing_reset_hunt() -> void:
+	_reset_hunt()
+
+
+func testing_trigger_scanner() -> void:
+	_trigger_scanner()
+
+
+func testing_unlock_scanner() -> void:
+	_unlock_scanner()
+
+
+func testing_set_clean_monitor(enabled: bool) -> void:
+	clean_monitor_enabled = enabled
+	if clean_monitor_checkbox != null:
+		clean_monitor_checkbox.pressed = enabled
+
+
+func testing_get_broadcasts() -> Array:
+	var copy := []
+	for broadcast in broadcasts:
+		copy.append(broadcast.duplicate(true))
+	return copy
+
+
+func testing_find_broadcast(broadcast_id: String) -> Dictionary:
+	return _broadcast_by_id(broadcast_id).duplicate(true)
+
+
+func testing_snapshot() -> Dictionary:
+	return {
+		"player_position": player_position,
+		"df_frequency": df_frequency,
+		"result_text": result_text,
+		"bearings_count": bearings.size(),
+		"fix_position": fix_position,
+		"receiver_profile": receiver_profile.duplicate(true),
+		"scanner_profile": scanner_profile.duplicate(true),
+		"current_df_broadcast_id": current_df_broadcast_id,
+		"current_scanner_broadcast_id": current_scanner_broadcast_id,
+		"df_playback_position": df_voice_player.get_playback_position() if df_voice_player != null else 0.0,
+		"scanner_playback_position": scanner_voice_player.get_playback_position() if scanner_voice_player != null else 0.0,
+		"df_stream_paused": not df_voice_player.playing if df_voice_player != null else true,
+		"scanner_stream_paused": not scanner_voice_player.playing if scanner_voice_player != null else true,
+		"broadcasts": testing_get_broadcasts()
+	}

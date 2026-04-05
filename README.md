@@ -37,6 +37,18 @@ If you used the local user-space runtime download during setup, you can also run
 
 Controls are documented in the in-game HUD and in [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md).
 
+## Automated testing
+
+The repository now includes a headless gameplay testing agent:
+
+```bash
+./testing/run_agent.sh
+```
+
+It exercises the real main scene, writes reports into `testing/reports/`, and compares the latest run with the previous one.
+
+See [testing/README.md](/home/ein/projects/simple_game/testing/README.md) for coverage and report files.
+
 ## Building distributables
 
 The repository now includes a repeatable export pipeline for desktop and browser builds:

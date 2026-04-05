@@ -7,3 +7,4 @@ tools/godot3/
 tools/godot3.zip
 dist/
 tools/export_templates/
+testing/reports/previous.json
