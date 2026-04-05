@@ -68,6 +68,7 @@ var scope_samples := []
 var waterfall_rows := []
 var broadcasts := []
 var map_texture = null
+var waterfall_texture = null
 
 var df_voice_player = null
 var df_noise_player = null
@@ -124,6 +125,7 @@ onready var df_volume_slider := $HUD/Root/Panel/DFVolumeSlider
 onready var scanner_volume_slider := $HUD/Root/Panel/ScannerVolumeSlider
 onready var df_volume_value := $HUD/Root/Panel/DFVolumeValue
 onready var scanner_volume_value := $HUD/Root/Panel/ScannerVolumeValue
+onready var waterfall_display := $HUD/Root/Panel/WaterfallDisplay
 
 
 func _ready() -> void:
@@ -169,6 +171,7 @@ func _process(delta: float) -> void:
 	_update_audio_mix(receiver_profile)
 	_push_scope_sample(receiver_profile)
 	_push_waterfall_row(delta)
+	_update_waterfall_texture()
 	_update_status()
 	update()
 
@@ -264,24 +267,7 @@ func _draw_scope() -> void:
 
 
 func _draw_waterfall() -> void:
-	draw_rect(WATERFALL_RECT, Color(0.02, 0.03, 0.05))
-	draw_rect(WATERFALL_RECT.grow(1.0), Color(0.74, 0.83, 0.88, 0.18), false, 2.0)
-	if waterfall_rows.empty():
-		return
-	var row_count = waterfall_rows.size()
-	var bin_count = waterfall_rows[0].size()
-	var cell_w = WATERFALL_RECT.size.x / float(max(bin_count, 1))
-	var cell_h = WATERFALL_RECT.size.y / float(max(row_count, 1))
-	for row_index in range(row_count):
-		for bin_index in range(bin_count):
-			var intensity = waterfall_rows[row_index][bin_index]
-			var px = WATERFALL_RECT.position.x + bin_index * cell_w
-			var py = WATERFALL_RECT.end.y - (row_index + 1) * cell_h
-			draw_rect(
-				Rect2(Vector2(px, py), Vector2(cell_w + 1.0, cell_h + 1.0)),
-				_waterfall_color(intensity)
-			)
-	_draw_waterfall_scale()
+	return
 
 
 func _capture_bearing() -> void:
@@ -810,51 +796,42 @@ func _push_waterfall_row(delta: float) -> void:
 		waterfall_rows.pop_front()
 
 
-func _draw_waterfall_scale() -> void:
-	var scale_rect = Rect2(
-		Vector2(WATERFALL_RECT.position.x, WATERFALL_RECT.end.y + 2.0),
-		Vector2(WATERFALL_RECT.size.x, WATERFALL_LABEL_HEIGHT)
-	)
-	draw_rect(scale_rect, Color(0.03, 0.04, 0.06))
-	draw_line(
-		Vector2(scale_rect.position.x, scale_rect.position.y),
-		Vector2(scale_rect.end.x, scale_rect.position.y),
-		Color(0.74, 0.83, 0.88, 0.12),
-		1.0
-	)
-	for mhz in range(int(floor(SCANNER_MIN_FREQ)), int(ceil(SCANNER_MAX_FREQ)) + 1):
-		var ratio = (float(mhz) - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
-		var x = lerp(scale_rect.position.x, scale_rect.end.x, clamp(ratio, 0.0, 1.0))
-		draw_line(
-			Vector2(x, scale_rect.position.y + 1.0),
-			Vector2(x, scale_rect.position.y + 8.0),
-			Color(0.74, 0.83, 0.88, 0.45),
-			1.0
-		)
-		var scale_font = status_label.get_font("font")
-		if scale_font != null:
-			draw_string(
-				scale_font,
-				Vector2(x - 11.0, scale_rect.position.y + 17.0),
-				"%d" % mhz,
-				Color(0.82, 0.87, 0.91)
-			)
+func _update_waterfall_texture() -> void:
+	if waterfall_display == null:
+		return
+	var width = int(max(1.0, waterfall_display.rect_size.x))
+	var height = int(max(1.0, waterfall_display.rect_size.y))
+	var image = Image.new()
+	image.create(width, height, false, Image.FORMAT_RGBA8)
+	image.lock()
+	for y in range(height):
+		for x in range(width):
+			image.set_pixel(x, y, Color(0.02, 0.03, 0.05, 1.0))
+	if not waterfall_rows.empty():
+		var row_count = waterfall_rows.size()
+		var bin_count = waterfall_rows[0].size()
+		for y in range(height):
+			var row_ratio = float(y) / float(max(height - 1, 1))
+			var source_row = int(clamp(floor((1.0 - row_ratio) * row_count), 0, row_count - 1))
+			for x in range(width):
+				var bin_ratio = float(x) / float(max(width - 1, 1))
+				var source_bin = int(clamp(floor(bin_ratio * bin_count), 0, bin_count - 1))
+				var intensity = waterfall_rows[source_row][source_bin]
+				image.set_pixel(x, y, _waterfall_color(intensity))
 	var df_ratio = (df_frequency - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
-	var df_x = lerp(WATERFALL_RECT.position.x, WATERFALL_RECT.end.x, clamp(df_ratio, 0.0, 1.0))
-	draw_line(
-		Vector2(df_x, WATERFALL_RECT.position.y),
-		Vector2(df_x, scale_rect.end.y),
-		Color(0.98, 0.91, 0.46, 0.75),
-		1.0
-	)
+	var df_x = int(clamp(round(df_ratio * float(width - 1)), 0, width - 1))
+	for y in range(height):
+		image.set_pixel(df_x, y, Color(0.98, 0.91, 0.46, 1.0))
 	var scanner_ratio = (scanner_profile["frequency"] - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
-	var scanner_x = lerp(WATERFALL_RECT.position.x, WATERFALL_RECT.end.x, clamp(scanner_ratio, 0.0, 1.0))
-	draw_line(
-		Vector2(scanner_x, WATERFALL_RECT.position.y),
-		Vector2(scanner_x, scale_rect.end.y),
-		Color(0.48, 0.82, 0.96, 0.55),
-		1.0
-	)
+	var scanner_x = int(clamp(round(scanner_ratio * float(width - 1)), 0, width - 1))
+	for y in range(height):
+		var blended = image.get_pixel(scanner_x, y).linear_interpolate(Color(0.48, 0.82, 0.96, 1.0), 0.65)
+		image.set_pixel(scanner_x, y, blended)
+	image.unlock()
+	if waterfall_texture == null:
+		waterfall_texture = ImageTexture.new()
+	waterfall_texture.create_from_image(image, 0)
+	waterfall_display.texture = waterfall_texture
 
 
 func _audio_summary(reading: Dictionary) -> String:
@@ -1048,6 +1025,7 @@ func testing_find_broadcast(broadcast_id: String) -> Dictionary:
 
 
 func testing_snapshot() -> Dictionary:
+	var waterfall_summary = testing_get_waterfall_summary()
 	return {
 		"player_position": player_position,
 		"df_frequency": df_frequency,
@@ -1062,5 +1040,35 @@ func testing_snapshot() -> Dictionary:
 		"scanner_playback_position": scanner_voice_player.get_playback_position() if scanner_voice_player != null else 0.0,
 		"df_stream_paused": not df_voice_player.playing if df_voice_player != null else true,
 		"scanner_stream_paused": not scanner_voice_player.playing if scanner_voice_player != null else true,
-		"broadcasts": testing_get_broadcasts()
+		"broadcasts": testing_get_broadcasts(),
+		"waterfall_summary": waterfall_summary
+	}
+
+
+func testing_get_waterfall_summary() -> Dictionary:
+	var row_count = waterfall_rows.size()
+	var bin_count = 0
+	var max_intensity = 0.0
+	var avg_intensity = 0.0
+	var bright_bins = 0
+	var sample_count = 0
+	if row_count > 0:
+		bin_count = waterfall_rows[0].size()
+	for row in waterfall_rows:
+		for value in row:
+			var sample = float(value)
+			max_intensity = max(max_intensity, sample)
+			avg_intensity += sample
+			sample_count += 1
+			if sample >= 0.25:
+				bright_bins += 1
+	if sample_count > 0:
+		avg_intensity /= float(sample_count)
+	return {
+		"row_count": row_count,
+		"bin_count": bin_count,
+		"max_intensity": max_intensity,
+		"average_intensity": avg_intensity,
+		"bright_bins": bright_bins,
+		"has_texture": waterfall_texture != null and waterfall_display != null and waterfall_display.texture != null
 	}

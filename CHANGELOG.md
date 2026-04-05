@@ -9,6 +9,7 @@
 - Added a headless gameplay testing agent under `testing/`.
 - Added an initial automated behavior report under `testing/reports/`.
 - Replaced the decorative waterfall with a fake full-band waterfall showing simulated energy by frequency over time.
+- Fixed the waterfall rendering path by moving it into the HUD layer and added an automated visibility test for it.
 
 ## 2026-04-05
 

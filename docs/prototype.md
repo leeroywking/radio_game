@@ -58,6 +58,7 @@ The waterfall display is currently a fake but structured spectrogram:
 - Time scrolls downward
 - Color intensity represents stronger simulated energy at each frequency
 - Active broadcast frequencies show brighter vertical traces and pulsing energy
+- The waterfall is rendered on a HUD texture surface so it remains visible above the panel chrome
 
 The stated task for the player is:
 

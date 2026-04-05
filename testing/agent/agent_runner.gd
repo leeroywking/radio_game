@@ -43,6 +43,7 @@ func _run() -> void:
 	var cases = [
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
+		yield(_run_waterfall_visibility_case(), "completed"),
 		yield(_run_scanner_lock_case(), "completed"),
 		yield(_run_fix_submission_case(), "completed"),
 		yield(_run_target_audio_continuity_case(false), "completed"),
@@ -121,6 +122,27 @@ func _run_df_numeric_entry_case() -> Dictionary:
 		"details": {
 			"df_frequency": snapshot["df_frequency"],
 			"input_text": game.df_frequency_input.text
+		}
+	}
+
+
+func _run_waterfall_visibility_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.8), "timeout")
+	var snapshot = game.testing_snapshot()
+	var waterfall = snapshot.get("waterfall_summary", {})
+	var pass_case = waterfall.get("row_count", 0) >= 10 and waterfall.get("bright_bins", 0) > 0 and waterfall.get("has_texture", false)
+	return {
+		"name": "waterfall_visibility",
+		"pass": pass_case,
+		"warning": false,
+		"details": {
+			"row_count": waterfall.get("row_count", 0),
+			"bin_count": waterfall.get("bin_count", 0),
+			"max_intensity": waterfall.get("max_intensity", 0.0),
+			"average_intensity": waterfall.get("average_intensity", 0.0),
+			"bright_bins": waterfall.get("bright_bins", 0),
+			"has_texture": waterfall.get("has_texture", false)
 		}
 	}
 
