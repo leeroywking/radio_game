@@ -14,7 +14,8 @@
 - Fixed DF audio dropping during bearing capture and added an automated bearing-capture audio continuity test.
 - Refreshed the automated test baseline and rebuilt Linux, Windows, and HTML5 distribution artifacts.
 - Added GitHub Actions CI to run the headless test agent and export builds on push and pull request.
-- Updated GitHub Actions CI to publish a rolling `prototype-latest` prerelease with the latest build artifacts on pushes to `master` or `main`.
+- Updated GitHub Actions CI to publish a rolling `prototype-latest` release with the latest build artifacts on pushes to `master` or `main`.
+- Changed the rolling `prototype-latest` publication from a prerelease to a normal release so it becomes the visible latest GitHub release after each successful push.
 - Added automatic GitHub Pages deployment for the HTML5 build and linked the live demo in the README.
 - Fixed a DF receiver audio regression by making the DF player restart if playback stops on the active tuned source and by boosting the target conversation source gain.
 - Added automated DF audibility and DF restart regression cases to the headless testing agent.

@@ -45,7 +45,7 @@ timeout 3 ./run_demo.sh
 
 - Pushes to `master` or `main` trigger GitHub Actions CI.
 - CI runs the headless gameplay tests and export build.
-- If CI succeeds on `master` or `main`, GitHub updates the rolling prerelease tagged `prototype-latest` with the latest Linux, Windows, and HTML5 artifacts.
+- If CI succeeds on `master` or `main`, GitHub updates the rolling release tagged `prototype-latest` with the latest Linux, Windows, and HTML5 artifacts.
 - The same successful push also deploys the HTML5 build to GitHub Pages.
 
 ## Current baseline
