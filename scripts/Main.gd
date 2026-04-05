@@ -24,6 +24,7 @@ const BROADCAST_TEMPLATES := [
 		"id": "lesson_alpha",
 		"label": "Educational Alpha",
 		"path": "res://assets/audio/training_alpha.wav",
+		"gain_db": 0.0,
 		"type": "clean",
 		"role": "education",
 		"frequency": 144.925,
@@ -33,6 +34,7 @@ const BROADCAST_TEMPLATES := [
 		"id": "lesson_bravo",
 		"label": "Educational Bravo",
 		"path": "res://assets/audio/training_bravo.wav",
+		"gain_db": 0.0,
 		"type": "clean",
 		"role": "education",
 		"frequency": 145.410,
@@ -42,6 +44,7 @@ const BROADCAST_TEMPLATES := [
 		"id": "lesson_charlie",
 		"label": "Educational Charlie",
 		"path": "res://assets/audio/training_charlie.wav",
+		"gain_db": 0.0,
 		"type": "clean",
 		"role": "education",
 		"frequency": 147.155,
@@ -51,6 +54,7 @@ const BROADCAST_TEMPLATES := [
 		"id": "real_conversation",
 		"label": "Real Conversation",
 		"path": "res://assets/audio/ham_contest_exchange.wav",
+		"gain_db": 6.0,
 		"type": "radio",
 		"role": "target",
 		"frequency": 146.235,
@@ -745,14 +749,15 @@ func _update_audio_mix(reading: Dictionary) -> void:
 
 	var voice_level = reading["voice_level"]
 	var noise_level = reading["noise_level"]
+	var df_gain_db = _broadcast_gain_db(reading["broadcast_id"])
 	if reading["broadcast_id"] == "":
 		df_voice_player.volume_db = -80.0
 	elif clean_monitor_enabled:
-		df_voice_player.volume_db = _scaled_volume_db(lerp(-12.0, -1.5, voice_level), df_volume)
+		df_voice_player.volume_db = _scaled_volume_db(lerp(-12.0, -1.5, voice_level) + df_gain_db, df_volume)
 	elif voice_level < 0.06:
-		df_voice_player.volume_db = _scaled_volume_db(-36.0, df_volume)
+		df_voice_player.volume_db = _scaled_volume_db(-32.0 + df_gain_db, df_volume)
 	else:
-		df_voice_player.volume_db = _scaled_volume_db(lerp(-16.0, -1.0, voice_level), df_volume)
+		df_voice_player.volume_db = _scaled_volume_db(lerp(-16.0, -1.0, voice_level) + df_gain_db, df_volume)
 	if noise_level <= 0.001:
 		df_noise_player.volume_db = -80.0
 	else:
@@ -760,15 +765,24 @@ func _update_audio_mix(reading: Dictionary) -> void:
 	df_voice_player.pitch_scale = 0.96 + voice_level * 0.08
 
 	var scanner_level = scanner_profile["voice_level"]
+	var scanner_gain_db = _broadcast_gain_db(scanner_profile["broadcast_id"])
 	if scanner_profile["broadcast_id"] == "":
 		scanner_voice_player.volume_db = -80.0
 	else:
-		scanner_voice_player.volume_db = _scaled_volume_db(lerp(-20.0, -2.0, scanner_level), scanner_volume)
+		scanner_voice_player.volume_db = _scaled_volume_db(lerp(-20.0, -2.0, scanner_level) + scanner_gain_db, scanner_volume)
 	scanner_voice_player.pitch_scale = 1.0
 
 
 func _update_player_stream(player: AudioStreamPlayer, broadcast_id: String, current_id: String) -> void:
 	if broadcast_id == current_id:
+		if broadcast_id == "":
+			if player.playing:
+				player.stop()
+			return
+		if player.stream == null:
+			player.stream = audio_stream_cache.get(broadcast_id, null)
+		if not player.playing and player.stream != null:
+			player.play()
 		return
 	player.stop()
 	if broadcast_id == "":
@@ -903,6 +917,15 @@ func _scaled_volume_db(base_db: float, volume_scalar: float) -> float:
 	if volume_scalar <= 0.001:
 		return -80.0
 	return base_db + linear2db(volume_scalar)
+
+
+func _broadcast_gain_db(broadcast_id: String) -> float:
+	if broadcast_id == "":
+		return 0.0
+	var broadcast = _broadcast_by_id(broadcast_id)
+	if broadcast.empty():
+		return 0.0
+	return float(broadcast.get("gain_db", 0.0))
 
 
 func _waterfall_color(intensity: float) -> Color:
@@ -1090,6 +1113,10 @@ func testing_snapshot() -> Dictionary:
 		"scanner_playback_position": scanner_voice_player.get_playback_position() if scanner_voice_player != null else 0.0,
 		"df_stream_paused": not df_voice_player.playing if df_voice_player != null else true,
 		"scanner_stream_paused": not scanner_voice_player.playing if scanner_voice_player != null else true,
+		"df_voice_volume_db": df_voice_player.volume_db if df_voice_player != null else -80.0,
+		"df_noise_volume_db": df_noise_player.volume_db if df_noise_player != null else -80.0,
+		"scanner_voice_volume_db": scanner_voice_player.volume_db if scanner_voice_player != null else -80.0,
+		"df_has_stream": df_voice_player != null and df_voice_player.stream != null,
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary
 	}
