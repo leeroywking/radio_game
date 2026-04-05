@@ -18,17 +18,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip zip wget xvfb libglu1-mesa
+          sudo apt-get install -y unzip zip wget xvfb libglu1-mesa coreutils
 
       - name: Download Godot runtime
         run: |
+          GODOT_RUNTIME_SHA256="fe26dfed51e50f75b60d14805f696075e7ef9f10a357be71b540c704e00ef33e"
           mkdir -p tools/godot3
           wget -O tools/godot3.zip https://github.com/godotengine/godot/releases/download/3.5.3-stable/Godot_v3.5.3-stable_x11.64.zip
+          echo "$GODOT_RUNTIME_SHA256  tools/godot3.zip" | sha256sum --check --
           unzip -oq tools/godot3.zip -d tools/godot3
           chmod +x tools/godot3/Godot_v3.5.3-stable_x11.64
 
@@ -46,7 +48,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: testing-reports
           path: |
@@ -54,20 +56,20 @@ jobs:
             testing/reports/latest.json
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: release-artifacts
           path: dist/releases/*
 
       - name: Upload GitHub Pages artifact
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: dist/staging/html5
 
       - name: Publish rolling prototype release
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
         with:
           tag_name: prototype-latest
           name: Prototype Latest
@@ -97,4 +99,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
