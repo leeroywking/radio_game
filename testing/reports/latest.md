@@ -1,9 +1,9 @@
 # Testing Agent Report
 
-Generated: {day:5, dst:True, hour:14, minute:47, month:4, second:45, weekday:0, year:2026}
+Generated: {day:5, dst:True, hour:15, minute:17, month:4, second:48, weekday:0, year:2026}
 
-- Cases: 10
-- Passed: 10
+- Cases: 12
+- Passed: 12
 - Failed: 0
 - Warnings: 2
 
@@ -21,15 +21,35 @@ Generated: {day:5, dst:True, hour:14, minute:47, month:4, second:45, weekday:0, 
 - df_frequency: 146.235
 - input_text: 146.235
 
+## df_audio_audible
+
+- Pass: True
+- Warning: False
+- broadcast_id: real_conversation
+- voice_level: 0.618534
+- df_voice_volume_db: -2.133605
+- df_has_stream: True
+- df_stream_paused: False
+
+## df_audio_restart
+
+- Pass: True
+- Warning: False
+- broadcast_id: real_conversation
+- df_has_stream: True
+- df_stream_paused: False
+- df_playback_position: 0.188753
+- df_voice_volume_db: -0.505691
+
 ## waterfall_visibility
 
 - Pass: True
 - Warning: False
-- row_count: 10
+- row_count: 11
 - bin_count: 72
-- max_intensity: 0.61225
-- average_intensity: 0.068112
-- bright_bins: 30
+- max_intensity: 0.407401
+- average_intensity: 0.060121
+- bright_bins: 26
 - has_texture: True
 
 ## waterfall_click_tuning
@@ -45,14 +65,14 @@ Generated: {day:5, dst:True, hour:14, minute:47, month:4, second:45, weekday:0, 
 - Warning: False
 - broadcast_count: 4
 - strong_count: 4
-- average_station_intensity: 0.278706
+- average_station_intensity: 0.245183
 
 ## bearing_capture_audio_continuity
 
 - Pass: True
 - Warning: False
-- before_playback_position: 0.41483
-- after_playback_position: 0.556281
+- before_playback_position: 0.344898
+- after_playback_position: 0.509161
 - same_broadcast: True
 - df_stream_paused: False
 
@@ -102,6 +122,8 @@ Generated: {day:5, dst:True, hour:14, minute:47, month:4, second:45, weekday:0, 
 
 - reset_randomization: unchanged
 - df_numeric_entry: unchanged
+- df_audio_audible: metrics_changed
+- df_audio_restart: metrics_changed
 - waterfall_visibility: metrics_changed
 - waterfall_click_tuning: unchanged
 - waterfall_station_energy: metrics_changed

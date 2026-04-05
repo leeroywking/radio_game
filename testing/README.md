@@ -18,6 +18,8 @@ Current coverage:
 
 - Reset behavior changes broadcast layout and target frequency
 - DF numeric entry updates tuning state
+- DF target audio becomes audibly active when the player is tuned and aimed correctly
+- DF playback restarts if the active tuned audio stream stops unexpectedly
 - Scanner can lock onto a broadcast
 - Bearing capture and fix submission still work
 - Target-audio continuity under ideal conditions, with and without clean monitor

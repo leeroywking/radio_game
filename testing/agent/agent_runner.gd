@@ -43,6 +43,8 @@ func _run() -> void:
 	var cases = [
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
+		yield(_run_df_audio_audible_case(), "completed"),
+		yield(_run_df_audio_restart_case(), "completed"),
 		yield(_run_waterfall_visibility_case(), "completed"),
 		yield(_run_waterfall_click_tuning_case(), "completed"),
 		yield(_run_waterfall_station_energy_case(), "completed"),
@@ -125,6 +127,64 @@ func _run_df_numeric_entry_case() -> Dictionary:
 		"details": {
 			"df_frequency": snapshot["df_frequency"],
 			"input_text": game.df_frequency_input.text
+		}
+	}
+
+
+func _run_df_audio_audible_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-160, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.4), "timeout")
+	var snapshot = game.testing_snapshot()
+	var receiver = snapshot["receiver_profile"]
+	var on_target = String(receiver["broadcast_id"]) == TARGET_ID
+	var stream_ok = bool(snapshot["df_has_stream"])
+	var playing = not bool(snapshot["df_stream_paused"])
+	var loud_enough = float(snapshot["df_voice_volume_db"]) > -18.0
+	var voice_ok = float(receiver["voice_level"]) > 0.45
+	return {
+		"name": "df_audio_audible",
+		"pass": on_target and stream_ok and playing and loud_enough and voice_ok,
+		"warning": false,
+		"details": {
+			"broadcast_id": receiver["broadcast_id"],
+			"voice_level": receiver["voice_level"],
+			"df_voice_volume_db": snapshot["df_voice_volume_db"],
+			"df_has_stream": stream_ok,
+			"df_stream_paused": snapshot["df_stream_paused"]
+		}
+	}
+
+
+func _run_df_audio_restart_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-160, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.35), "timeout")
+	game.df_voice_player.stop()
+	yield(_wait_seconds(0.15), "timeout")
+	var snapshot = game.testing_snapshot()
+	var receiver = snapshot["receiver_profile"]
+	var restarted = not bool(snapshot["df_stream_paused"]) and float(snapshot["df_playback_position"]) > 0.0
+	return {
+		"name": "df_audio_restart",
+		"pass": String(receiver["broadcast_id"]) == TARGET_ID and bool(snapshot["df_has_stream"]) and restarted and float(snapshot["df_voice_volume_db"]) > -18.0,
+		"warning": false,
+		"details": {
+			"broadcast_id": receiver["broadcast_id"],
+			"df_has_stream": snapshot["df_has_stream"],
+			"df_stream_paused": snapshot["df_stream_paused"],
+			"df_playback_position": snapshot["df_playback_position"],
+			"df_voice_volume_db": snapshot["df_voice_volume_db"]
 		}
 	}
 
