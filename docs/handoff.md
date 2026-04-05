@@ -66,7 +66,7 @@ The current build includes:
   The headless testing agent now asserts that the DF path is actually audible on the target broadcast and that the DF player self-recovers if playback stops while the tuned broadcast remains unchanged.
 
 - `.github/workflows/ci.yml`
-  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub prerelease, and deploys the HTML5 build to GitHub Pages on pushes to `master` or `main`.
+  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and deploys the HTML5 build to GitHub Pages on pushes to `master` or `main`.
 
 - `docs/architecture.md`
   High-level product/system architecture direction.

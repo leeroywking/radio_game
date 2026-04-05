@@ -71,7 +71,7 @@ jobs:
         with:
           tag_name: prototype-latest
           name: Prototype Latest
-          prerelease: true
+          prerelease: false
           generate_release_notes: false
           make_latest: true
           body: |
