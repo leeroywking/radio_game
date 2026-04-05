@@ -34,6 +34,14 @@ Use these folders as follows:
 - `dist/itch/downloads/`: desktop zips ready to upload as downloadable files on itch.io
 - `dist/itch/html5/`: browser zip ready to upload as an itch.io HTML game
 
+## GitHub Pages
+
+The HTML5 build is also deployed automatically to GitHub Pages from CI on pushes to `master` or `main`.
+
+Expected live URL:
+
+- `https://leeroywking.github.io/radio_game/`
+
 ## itch.io
 
 Recommended packaging flow:

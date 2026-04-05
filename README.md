@@ -15,6 +15,10 @@ The current prototype demonstrates the core learning loop:
 
 See [docs/architecture.md](/home/ein/projects/simple_game/docs/architecture.md) for the long-term architecture and [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md) for the current demo scope.
 
+Live demo:
+
+- GitHub Pages HTML5 build: https://leeroywking.github.io/radio_game/
+
 ## Engine choice
 
 The recommended production engine is Godot 4.x because it is a strong fit for low-budget 2D pixel-art simulation work.
@@ -49,7 +53,7 @@ It exercises the real main scene, writes reports into `testing/reports/`, and co
 
 See [testing/README.md](/home/ein/projects/simple_game/testing/README.md) for coverage and report files.
 
-GitHub Actions CI is configured in [.github/workflows/ci.yml](/home/ein/projects/simple_game/.github/workflows/ci.yml) to run the headless test agent and export builds on push and pull request. Pushes to `master` or `main` also update a rolling GitHub prerelease named `Prototype Latest` with the built artifacts.
+GitHub Actions CI is configured in [.github/workflows/ci.yml](/home/ein/projects/simple_game/.github/workflows/ci.yml) to run the headless test agent and export builds on push and pull request. Pushes to `master` or `main` also update a rolling GitHub prerelease named `Prototype Latest` with the built artifacts and deploy the HTML5 build to GitHub Pages.
 
 ## Building distributables
 

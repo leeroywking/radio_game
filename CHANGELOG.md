@@ -15,6 +15,7 @@
 - Refreshed the automated test baseline and rebuilt Linux, Windows, and HTML5 distribution artifacts.
 - Added GitHub Actions CI to run the headless test agent and export builds on push and pull request.
 - Updated GitHub Actions CI to publish a rolling `prototype-latest` prerelease with the latest build artifacts on pushes to `master` or `main`.
+- Added automatic GitHub Pages deployment for the HTML5 build and linked the live demo in the README.
 
 ## 2026-04-05
 

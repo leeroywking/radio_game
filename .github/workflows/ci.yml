@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   test-and-build:
@@ -56,6 +58,12 @@ jobs:
           name: release-artifacts
           path: dist/releases/*
 
+      - name: Upload GitHub Pages artifact
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/staging/html5
+
       - name: Publish rolling prototype release
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         uses: softprops/action-gh-release@v2
@@ -76,3 +84,16 @@ jobs:
             dist/releases/RabbitHuntTrainer-linux-x86_64.zip
             dist/releases/RabbitHuntTrainer-windows-x86_64.zip
             dist/releases/RabbitHuntTrainer-html5.zip
+
+  deploy-pages:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
