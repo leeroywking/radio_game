@@ -49,6 +49,8 @@ It exercises the real main scene, writes reports into `testing/reports/`, and co
 
 See [testing/README.md](/home/ein/projects/simple_game/testing/README.md) for coverage and report files.
 
+GitHub Actions CI is configured in [.github/workflows/ci.yml](/home/ein/projects/simple_game/.github/workflows/ci.yml) to run the headless test agent and export builds on push and pull request.
+
 ## Building distributables
 
 The repository now includes a repeatable export pipeline for desktop and browser builds:

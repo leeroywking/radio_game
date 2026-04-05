@@ -1,6 +1,6 @@
 # Testing Agent Report
 
-Generated: {day:5, dst:True, hour:14, minute:43, month:4, second:27, weekday:0, year:2026}
+Generated: {day:5, dst:True, hour:14, minute:47, month:4, second:45, weekday:0, year:2026}
 
 - Cases: 10
 - Passed: 10
@@ -25,11 +25,11 @@ Generated: {day:5, dst:True, hour:14, minute:43, month:4, second:27, weekday:0, 
 
 - Pass: True
 - Warning: False
-- row_count: 11
+- row_count: 10
 - bin_count: 72
-- max_intensity: 0.491026
-- average_intensity: 0.064504
-- bright_bins: 32
+- max_intensity: 0.61225
+- average_intensity: 0.068112
+- bright_bins: 30
 - has_texture: True
 
 ## waterfall_click_tuning
@@ -45,14 +45,14 @@ Generated: {day:5, dst:True, hour:14, minute:43, month:4, second:27, weekday:0, 
 - Warning: False
 - broadcast_count: 4
 - strong_count: 4
-- average_station_intensity: 0.335352
+- average_station_intensity: 0.278706
 
 ## bearing_capture_audio_continuity
 
 - Pass: True
 - Warning: False
-- before_playback_position: 0.3922
-- after_playback_position: 0.580952
+- before_playback_position: 0.41483
+- after_playback_position: 0.556281
 - same_broadcast: True
 - df_stream_paused: False
 

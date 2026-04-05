@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip zip wget xvfb libglu1-mesa
+
+      - name: Download Godot runtime
+        run: |
+          mkdir -p tools/godot3
+          wget -O tools/godot3.zip https://github.com/godotengine/godot/releases/download/3.5.3-stable/Godot_v3.5.3-stable_x11.64.zip
+          unzip -oq tools/godot3.zip -d tools/godot3
+          chmod +x tools/godot3/Godot_v3.5.3-stable_x11.64
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x run_demo.sh
+          chmod +x testing/run_agent.sh
+          chmod +x scripts/build_exports.sh
+
+      - name: Run headless gameplay tests
+        run: xvfb-run -a ./testing/run_agent.sh
+
+      - name: Build export artifacts
+        run: xvfb-run -a ./scripts/build_exports.sh
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: testing-reports
+          path: |
+            testing/reports/latest.md
+            testing/reports/latest.json
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/releases/*
