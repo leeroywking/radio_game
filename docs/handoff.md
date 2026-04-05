@@ -36,6 +36,9 @@ The current build includes:
 5. Player-facing text should stay instructional, not diagnostic.
    Debug-heavy status output was replaced with simpler mission/status copy after user feedback.
 
+6. Branch-first workflow should be treated as standard operating procedure.
+   Future agents should start work on a short-lived branch and avoid direct `master` or `main` edits unless the user explicitly requests it or CI/release recovery requires it.
+
 ## Current files to know
 
 - `scripts/Main.gd`
