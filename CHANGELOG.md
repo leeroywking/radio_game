@@ -19,6 +19,8 @@
 - Added automatic GitHub Pages deployment for the HTML5 build and linked the live demo in the README.
 - Fixed a DF receiver audio regression by making the DF player restart if playback stops on the active tuned source and by boosting the target conversation source gain.
 - Added automated DF audibility and DF restart regression cases to the headless testing agent.
+- Added a startup welcome modal that explains the mission and controls before the hunt begins.
+- Added a regression test that verifies the welcome modal appears on startup and can be dismissed.
 
 ## 2026-04-05
 

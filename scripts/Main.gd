@@ -119,6 +119,8 @@ var testing_aim_override_enabled := false
 var testing_aim_direction := Vector2.RIGHT
 
 onready var status_label := $HUD/Root/Panel/Status
+onready var welcome_modal := $HUD/Root/WelcomeModal
+onready var welcome_button := $HUD/Root/WelcomeModal/WelcomePanel/WelcomeButton
 onready var submit_button := $HUD/Root/Panel/SubmitButton
 onready var reset_button := $HUD/Root/Panel/ResetButton
 onready var clean_monitor_checkbox := $HUD/Root/Panel/CleanMonitor
@@ -138,6 +140,7 @@ func _ready() -> void:
 	randomize()
 	_reset_broadcasts()
 	_load_map_texture()
+	welcome_button.connect("pressed", self, "_dismiss_welcome_modal")
 	submit_button.connect("pressed", self, "_submit_fix")
 	reset_button.connect("pressed", self, "_reset_hunt")
 	scanner_button.connect("pressed", self, "_trigger_scanner")
@@ -187,6 +190,11 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if welcome_modal != null and welcome_modal.visible:
+		if event.is_action_pressed("submit_fix") or event.is_action_pressed("capture_bearing") or event.is_action_pressed("toggle_scanner") or event.is_action_pressed("reset_hunt") or event.is_action_pressed("toggle_clean_monitor"):
+			_dismiss_welcome_modal()
+			get_tree().set_input_as_handled()
+			return
 	if event.is_action_pressed("capture_bearing"):
 		_capture_bearing()
 	elif event.is_action_pressed("submit_fix"):
@@ -204,6 +212,11 @@ func _input(event: InputEvent) -> void:
 		if PLAY_AREA.has_point(event.position):
 			fix_position = event.position
 			update()
+
+
+func _dismiss_welcome_modal() -> void:
+	if welcome_modal != null:
+		welcome_modal.visible = false
 
 
 func _draw() -> void:
@@ -1086,6 +1099,10 @@ func testing_set_clean_monitor(enabled: bool) -> void:
 		clean_monitor_checkbox.pressed = enabled
 
 
+func testing_dismiss_welcome_modal() -> void:
+	_dismiss_welcome_modal()
+
+
 func testing_get_broadcasts() -> Array:
 	var copy := []
 	for broadcast in broadcasts:
@@ -1117,6 +1134,7 @@ func testing_snapshot() -> Dictionary:
 		"df_noise_volume_db": df_noise_player.volume_db if df_noise_player != null else -80.0,
 		"scanner_voice_volume_db": scanner_voice_player.volume_db if scanner_voice_player != null else -80.0,
 		"df_has_stream": df_voice_player != null and df_voice_player.stream != null,
+		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary
 	}
