@@ -35,6 +35,12 @@ timeout 3 ./run_demo.sh
 - Avoid mixing UI redesign, signal-model changes, and asset-pipeline changes in one commit.
 - When adding visuals, prefer incremental changes over rewrites.
 
+## Release flow
+
+- Pushes to `master` or `main` trigger GitHub Actions CI.
+- CI runs the headless gameplay tests and export build.
+- If CI succeeds on `master` or `main`, GitHub updates the rolling prerelease tagged `prototype-latest` with the latest Linux, Windows, and HTML5 artifacts.
+
 ## Current baseline
 
 - Commit: `f71ed0e`

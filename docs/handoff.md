@@ -63,7 +63,7 @@ The current build includes:
   Current baseline behavior report from the testing agent.
 
 - `.github/workflows/ci.yml`
-  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, and builds export artifacts on push and pull request.
+  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, and updates a rolling `prototype-latest` GitHub prerelease on pushes to `master` or `main`.
 
 - `docs/architecture.md`
   High-level product/system architecture direction.
