@@ -18,6 +18,7 @@ Required policy:
 - Open a PR before merging whenever practical.
 - Treat direct `master` or `main` commits as exceptions for urgent CI or release repair only.
 - A branch is not considered handoff-ready until there is a PR URL or a documented blocker.
+- Product-facing PRs should bump `VERSION` by a small semver step.
 
 ## Commit style
 
@@ -46,7 +47,7 @@ timeout 3 ./run_demo.sh
 
 - Pushes to `master` or `main` trigger GitHub Actions CI.
 - CI runs the headless gameplay tests and export build.
-- If CI succeeds on `master` or `main`, GitHub updates the rolling release tagged `prototype-latest` with the latest Linux, Windows, and HTML5 artifacts.
+- If CI succeeds on `master` or `main` and `VERSION` changed in that push, GitHub publishes a versioned release tagged `v<VERSION>` with the latest Linux, Windows, and HTML5 artifacts.
 - Branch pushes also publish browser previews to GitHub Pages under `previews/<branch-name>/`.
 - The default branch build remains available at `https://leeroywking.github.io/radio_game/`.
 

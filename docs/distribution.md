@@ -67,4 +67,4 @@ Then open `http://localhost:8000`.
 
 - Export templates are installed on demand into the user Godot template directory.
 - The project uses `all_resources` export filtering so runtime-loaded map and audio assets are included in exported builds.
-- GitHub Actions publishes a rolling release tagged `prototype-latest` on pushes to `master` or `main`, attaching the current Linux, Windows, and HTML5 build zips.
+- GitHub Actions publishes a versioned release tagged `v<VERSION>` when `VERSION` changes on a successful push to `master` or `main`, attaching the current Linux, Windows, and HTML5 build zips.

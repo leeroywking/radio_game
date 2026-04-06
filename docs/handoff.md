@@ -95,7 +95,7 @@ The current build includes:
   The headless testing agent now checks first-person mode toggle state, verifies heading continuity there, and validates first-person reading capture state.
 
 - `.github/workflows/ci.yml`
-  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and publishes branch previews plus the default HTML5 build to GitHub Pages.
+  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, publishes versioned releases when `VERSION` changes, and publishes branch previews plus the default HTML5 build to GitHub Pages.
 
 - `docs/architecture.md`
   High-level product/system architecture direction.

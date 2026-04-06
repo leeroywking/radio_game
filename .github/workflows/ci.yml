@@ -11,7 +11,67 @@ env:
   GODOT_RELEASE: 3.5.3-stable
 
 jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_changed: ${{ steps.diff.outputs.version_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION_VALUE="$(tr -d '[:space:]' < VERSION)"
+          echo "version=$VERSION_VALUE" >> "$GITHUB_OUTPUT"
+
+      - name: Check changed files
+        id: diff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            RANGE_START="$BASE_SHA"
+          else
+            RANGE_START="$BEFORE_SHA"
+          fi
+
+          if [[ -z "$RANGE_START" || "$RANGE_START" == "0000000000000000000000000000000000000000" ]]; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED_FILES="$(git diff --name-only "$RANGE_START" "$HEAD_SHA")"
+          echo "$CHANGED_FILES"
+
+          PRODUCT_CHANGED=false
+          VERSION_CHANGED=false
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            if [[ "$file" == "VERSION" ]]; then
+              VERSION_CHANGED=true
+            fi
+            if [[ "$file" =~ ^(scripts/|scenes/|assets/|data/|project\.godot|export_presets\.cfg) ]]; then
+              PRODUCT_CHANGED=true
+            fi
+          done <<< "$CHANGED_FILES"
+
+          if [[ "$PRODUCT_CHANGED" == "true" && "$VERSION_CHANGED" != "true" ]]; then
+            echo "Product files changed without a VERSION bump." >&2
+            exit 1
+          fi
+
+          echo "version_changed=$VERSION_CHANGED" >> "$GITHUB_OUTPUT"
   test-and-build:
+    needs: version-check
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,29 +129,32 @@ jobs:
           path: dist/staging/html5
 
   publish-release:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
-    needs: test-and-build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && needs.version-check.outputs.version_changed == 'true'
+    needs: [version-check, test-and-build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
       - name: Download release artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: release-artifacts
           path: dist/releases
 
-      - name: Publish rolling prototype release
+      - name: Publish versioned release
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
         with:
-          tag_name: prototype-latest
-          name: Prototype Latest
+          tag_name: v${{ needs.version-check.outputs.version }}
+          name: v${{ needs.version-check.outputs.version }}
           prerelease: false
           generate_release_notes: false
           make_latest: true
           body: |
-            Latest automated prototype build from `${{ github.sha }}`.
+            Automated release for version `${{ needs.version-check.outputs.version }}` from `${{ github.sha }}`.
 
             Included assets:
             - Linux desktop build
