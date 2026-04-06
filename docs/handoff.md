@@ -20,6 +20,7 @@ The current build includes:
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
+- Bearing capture now records azimuth and coaching text so players get explicit keep/retake guidance
 - Bearing capture, fix placement, and scoring
 - A headless gameplay testing agent with comparison against the previous run
 

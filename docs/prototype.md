@@ -23,6 +23,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Independent DF and scanner audio volume controls
 - Per-source stereo routing controls
 - Aim-quality feedback
+- Bearing coaching with azimuth readout and keep/retake guidance
 - Bearing capture from multiple positions
 - Estimated fix placement
 - Submission and scoring
