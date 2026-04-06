@@ -45,6 +45,7 @@ func _run() -> void:
 		yield(_run_map_board_case(), "completed"),
 		yield(_run_map_board_plotting_case(), "completed"),
 		yield(_run_first_person_mode_case(), "completed"),
+		yield(_run_first_person_reading_case(), "completed"),
 		yield(_run_training_step_progression_case(), "completed"),
 		yield(_run_compass_heading_case(), "completed"),
 		yield(_run_bearing_visuals_case(), "completed"),
@@ -189,6 +190,40 @@ func _run_first_person_mode_case() -> Dictionary:
 			"opened_mode": opened.get("first_person_mode", null),
 			"aimed_heading": aimed.get("compass_heading_deg", null),
 			"closed_mode": closed.get("first_person_mode", null)
+		}
+	}
+
+
+func _run_first_person_reading_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-140, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	game.testing_toggle_first_person()
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	yield(_wait_seconds(0.2), "timeout")
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var last_bearing = snapshot.get("last_bearing", {})
+	var passed = bool(snapshot.get("first_person_mode", false)) \
+		and int(snapshot.get("bearings_count", 0)) >= 1 \
+		and String(last_bearing.get("capture_mode", "")) == "first_person" \
+		and String(snapshot.get("first_person_info_text", "")).find("HDG") >= 0 \
+		and String(snapshot.get("result_text", "")).find("Reading B1") >= 0
+	game.testing_toggle_first_person()
+	return {
+		"name": "first_person_reading",
+		"pass": passed,
+		"warning": false,
+		"details": {
+			"bearings_count": snapshot.get("bearings_count", null),
+			"capture_mode": last_bearing.get("capture_mode", null),
+			"result_text": snapshot.get("result_text", null),
+			"first_person_info_text": snapshot.get("first_person_info_text", null),
+			"first_person_prompt_text": snapshot.get("first_person_prompt_text", null)
 		}
 	}
 

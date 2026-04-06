@@ -182,6 +182,8 @@ onready var first_person_view := $HUD/Root/FirstPersonView
 onready var first_person_label := $HUD/Root/FirstPersonLabel
 onready var first_person_map := $HUD/Root/FirstPersonMap
 onready var first_person_map_label := $HUD/Root/FirstPersonMapLabel
+onready var first_person_info := $HUD/Root/FirstPersonInfo
+onready var first_person_prompt := $HUD/Root/FirstPersonPrompt
 
 
 func _ready() -> void:
@@ -384,6 +386,10 @@ func _sync_first_person_visibility() -> void:
 		first_person_map.visible = visible
 	if first_person_map_label != null:
 		first_person_map_label.visible = visible
+	if first_person_info != null:
+		first_person_info.visible = visible
+	if first_person_prompt != null:
+		first_person_prompt.visible = visible
 
 
 func _update_first_person_view() -> void:
@@ -764,6 +770,7 @@ func _capture_bearing() -> void:
 		return
 	var aim_vector = _get_aim_vector()
 	var azimuth_deg = _bearing_degrees(aim_vector)
+	var shot_number = bearings.size() + 1
 	var previous_separation = 0.0
 	if not bearings.empty():
 		previous_separation = player_position.distance_to(bearings[bearings.size() - 1]["origin"])
@@ -775,12 +782,17 @@ func _capture_bearing() -> void:
 		"broadcast_id": reading["broadcast_id"],
 		"quality": reading["quality"],
 		"azimuth_deg": azimuth_deg,
+		"capture_mode": "first_person" if first_person_mode else "top_down",
+		"shot_number": shot_number,
 		"origin_separation": previous_separation,
 		"advice": advice
 	})
 	bearing_capture_audio_hold_timer = 0.35
 	bearing_capture_audio_hold_broadcast_id = reading["broadcast_id"]
-	result_text = "Bearing %03d deg captured. %s" % [int(round(azimuth_deg)) % 360, advice]
+	if first_person_mode:
+		result_text = "Reading B%d %03d deg captured. %s" % [shot_number, int(round(azimuth_deg)) % 360, advice]
+	else:
+		result_text = "Bearing %03d deg captured. %s" % [int(round(azimuth_deg)) % 360, advice]
 
 
 func _submit_fix() -> void:
@@ -864,6 +876,19 @@ func _update_status() -> void:
 		lines.append(result_text)
 	status_label.text = "\n".join(lines)
 	instructions_label.text = "%s\n%s" % [training_step["title"], training_step["detail"]]
+	if first_person_info != null:
+		var heading_text = "HDG %03d" % (int(round(_bearing_degrees(_get_aim_vector()))) % 360)
+		var last_reading_text = "No reading"
+		if not bearings.empty():
+			var last_bearing = bearings[bearings.size() - 1]
+			last_reading_text = "B%d %03d %s" % [
+				int(last_bearing.get("shot_number", bearings.size())),
+				int(round(float(last_bearing.get("azimuth_deg", 0.0)))) % 360,
+				String(last_bearing.get("quality", "poor")).capitalize()
+			]
+		first_person_info.text = "%s   DF %.3f MHz   %s" % [heading_text, df_frequency, last_reading_text]
+	if first_person_prompt != null:
+		first_person_prompt.text = training_step["detail"]
 	if map_board_status_label != null:
 		map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s | Plot N-up" % [df_frequency, bearings.size(), fix_text]
 	if map_board_bearing_list != null:
@@ -1331,6 +1356,17 @@ func _bearing_capture_advice(quality: String, previous_separation: float) -> Str
 
 func _current_training_step() -> Dictionary:
 	var target_identified = receiver_profile["broadcast_id"] == TARGET_BROADCAST_ID or scanner_locked_broadcast_id == TARGET_BROADCAST_ID
+	var reading_word = "bearing"
+	var first_capture_title = "Step 2: Capture the first bearing"
+	var first_capture_detail = "Aim for the clearest heading, then press Space to mark a line of bearing."
+	var second_capture_title = "Step 3: Move and take a second bearing"
+	var second_capture_detail = "Walk to a new position before pressing Space again so the lines can cross."
+	if first_person_mode:
+		reading_word = "reading"
+		first_capture_title = "Step 2: Capture the first reading"
+		first_capture_detail = "Sweep with the can antenna, settle on the clearest heading, read the lensatic compass, then press Space for a reading."
+		second_capture_title = "Step 3: Move and take a second reading"
+		second_capture_detail = "Move to a new position, settle the antenna again, and take a second reading so the LOBs can cross."
 	if show_target:
 		return {
 			"id": "review_fix",
@@ -1346,20 +1382,20 @@ func _current_training_step() -> Dictionary:
 	if bearings.size() == 0:
 		return {
 			"id": "capture_first_bearing",
-			"title": "Step 2: Capture the first bearing",
-			"detail": "Aim for the clearest heading, then press Space to mark a line of bearing."
+			"title": first_capture_title,
+			"detail": first_capture_detail
 		}
 	if bearings.size() == 1:
 		return {
 			"id": "capture_second_bearing",
-			"title": "Step 3: Move and take a second bearing",
-			"detail": "Walk to a new position before pressing Space again so the lines can cross."
+			"title": second_capture_title,
+			"detail": second_capture_detail
 		}
 	if fix_position == null:
 		return {
 			"id": "plot_fix",
 			"title": "Step 4: Plot the fix on the map",
-			"detail": "Open the map board if needed, compare your marked lines, then click a fix point."
+			"detail": "Open the map board if needed, compare your marked %ss, then click a fix point." % reading_word
 		}
 	return {
 		"id": "submit_fix",
@@ -1827,6 +1863,8 @@ func testing_snapshot() -> Dictionary:
 		"compass_heading_deg": _bearing_degrees(_get_aim_vector()),
 		"first_person_mode": first_person_mode,
 		"first_person_heading_deg": first_person_heading_deg,
+		"first_person_info_text": first_person_info.text if first_person_info != null else "",
+		"first_person_prompt_text": first_person_prompt.text if first_person_prompt != null else "",
 		"last_bearing": last_bearing,
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,

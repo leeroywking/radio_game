@@ -47,6 +47,23 @@ margin_bottom = 82.0
 text = "Reading Map"
 align = 1
 
+[node name="FirstPersonInfo" type="Label" parent="HUD/Root"]
+visible = false
+margin_left = 420.0
+margin_top = 606.0
+margin_right = 1000.0
+margin_bottom = 650.0
+text = "Heading / frequency / reading"
+
+[node name="FirstPersonPrompt" type="Label" parent="HUD/Root"]
+visible = false
+margin_left = 420.0
+margin_top = 648.0
+margin_right = 1000.0
+margin_bottom = 692.0
+text = "Prompt"
+autowrap = true
+
 [node name="WelcomeModal" type="ColorRect" parent="HUD/Root"]
 visible = true
 anchor_right = 1.0

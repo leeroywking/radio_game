@@ -22,6 +22,7 @@ The current build includes:
 - A visible lensatic-style compass overlay that continuously shows the current DF heading
 - An initial first-person can-antenna mode rendered through a low-resolution 3D viewport
 - A tactical inset map in first-person mode that shows player position and captured LOBs
+- First-person reading overlays that show live heading, DF frequency, last reading, and prompt text
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
 - Bearing capture now records azimuth and coaching text so players get explicit keep/retake guidance
@@ -88,7 +89,7 @@ The current build includes:
   The headless testing agent now checks tutorial-step progression, live compass heading, and labeled bearing-visual summaries.
 
 - First-person mode coverage
-  The headless testing agent now checks first-person mode toggle state and verifies heading continuity there.
+  The headless testing agent now checks first-person mode toggle state, verifies heading continuity there, and validates first-person reading capture state.
 
 - `.github/workflows/ci.yml`
   GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and publishes branch previews plus the default HTML5 build to GitHub Pages.
