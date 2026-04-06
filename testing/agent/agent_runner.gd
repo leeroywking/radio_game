@@ -42,6 +42,7 @@ func _run() -> void:
 
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
+		yield(_run_map_board_case(), "completed"),
 		yield(_run_scanner_button_label_case(), "completed"),
 		yield(_run_hud_layout_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
@@ -102,6 +103,29 @@ func _run_welcome_modal_case() -> Dictionary:
 		"details": {
 			"initially_visible": initially_visible,
 			"dismissed": dismissed
+		}
+	}
+
+
+func _run_map_board_case() -> Dictionary:
+	var before = game.testing_snapshot()
+	var initially_hidden = not bool(before.get("map_board_visible", true))
+	game.testing_toggle_map_board()
+	yield(_wait_seconds(0.05), "timeout")
+	var opened = game.testing_snapshot()
+	var open_visible = bool(opened.get("map_board_visible", false))
+	game.testing_toggle_map_board()
+	yield(_wait_seconds(0.05), "timeout")
+	var closed = game.testing_snapshot()
+	var closed_hidden = not bool(closed.get("map_board_visible", true))
+	return {
+		"name": "map_board_toggle",
+		"pass": initially_hidden and open_visible and closed_hidden,
+		"warning": false,
+		"details": {
+			"initially_hidden": initially_hidden,
+			"open_visible": open_visible,
+			"closed_hidden": closed_hidden
 		}
 	}
 

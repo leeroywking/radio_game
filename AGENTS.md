@@ -21,6 +21,10 @@
 - Preferred checks for this repo:
   - `./testing/run_agent.sh`
   - `./run_demo.sh --quit`
+- For feature, UI, or gameplay work intended for PR review, make sure the branch can produce a browser preview and include that live-build URL in the PR body.
+- Use the repo's preview URL conventions:
+  - default branch build: `https://leeroywking.github.io/radio_game/`
+  - feature branch preview: `https://leeroywking.github.io/radio_game/previews/<branch-name>/`
 
 ## Documentation
 
@@ -34,3 +38,4 @@
   - the change is ready for human review with code, verification, and a PR
   - you hit a real blocker that cannot be resolved safely without user input
 - If the work touches GitHub state or automation, push the branch and open the PR instead of leaving the change only in the local workspace.
+- For reviewable feature work, "ready" means the PR includes a visible live preview link when the branch changes browser-playable behavior.

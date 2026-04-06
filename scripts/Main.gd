@@ -10,6 +10,7 @@ const OVERLOAD_DISTANCE := 70.0
 const SCOPE_RECT := Rect2(Vector2(32, 204), Vector2(322, 72))
 const WATERFALL_RECT := Rect2(Vector2(32, 324), Vector2(322, 92))
 const WATERFALL_LABEL_HEIGHT := 18.0
+const MAP_BOARD_RECT := Rect2(Vector2(392, 92), Vector2(840, 556))
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
 const SCANNER_MIN_FREQ := 144.000
@@ -82,6 +83,7 @@ var current_df_broadcast_id := ""
 var current_scanner_broadcast_id := ""
 
 var clean_monitor_enabled := false
+var map_board_visible := false
 var df_frequency := 145.000
 var df_volume := 0.85
 var scanner_volume := 0.70
@@ -128,6 +130,7 @@ onready var reset_button := $HUD/Root/Panel/ResetButton
 onready var clean_monitor_checkbox := $HUD/Root/Panel/CleanMonitor
 onready var scanner_button := $HUD/Root/Panel/ScannerButton
 onready var scanner_unlock_button := $HUD/Root/Panel/ScannerUnlockButton
+onready var map_board_button := $HUD/Root/Panel/MapBoardButton
 onready var df_frequency_slider := $HUD/Root/Panel/DFFrequencySlider
 onready var df_frequency_value := $HUD/Root/Panel/DFFrequencyValue
 onready var df_frequency_input := $HUD/Root/Panel/DFFrequencyInput
@@ -136,6 +139,8 @@ onready var scanner_volume_slider := $HUD/Root/Panel/ScannerVolumeSlider
 onready var df_volume_value := $HUD/Root/Panel/DFVolumeValue
 onready var scanner_volume_value := $HUD/Root/Panel/ScannerVolumeValue
 onready var waterfall_display := $HUD/Root/Panel/WaterfallDisplay
+onready var map_board_overlay := $HUD/Root/MapBoardOverlay
+onready var map_board_status_label := $HUD/Root/MapBoardOverlay/MapBoardStatus
 
 
 func _ready() -> void:
@@ -147,6 +152,7 @@ func _ready() -> void:
 	reset_button.connect("pressed", self, "_reset_hunt")
 	scanner_button.connect("pressed", self, "_trigger_scanner")
 	scanner_unlock_button.connect("pressed", self, "_unlock_scanner")
+	map_board_button.connect("pressed", self, "_toggle_map_board")
 	clean_monitor_checkbox.connect("toggled", self, "_on_clean_monitor_toggled")
 	df_frequency_slider.connect("value_changed", self, "_on_df_frequency_changed")
 	df_frequency_input.connect("text_entered", self, "_on_df_frequency_text_entered")
@@ -158,6 +164,7 @@ func _ready() -> void:
 	df_volume_slider.value = df_volume * 100.0
 	scanner_volume_slider.value = scanner_volume * 100.0
 	_sync_control_labels()
+	_sync_overlay_visibility()
 	_setup_audio()
 	set_process(true)
 	set_physics_process(true)
@@ -207,6 +214,8 @@ func _input(event: InputEvent) -> void:
 		_toggle_clean_monitor()
 	elif event.is_action_pressed("toggle_scanner"):
 		_trigger_scanner()
+	elif event.is_action_pressed("toggle_map_board"):
+		_toggle_map_board()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
 		if waterfall_display != null and waterfall_display.get_global_rect().has_point(event.position):
 			_tune_df_to_waterfall_click(event.position)
@@ -228,6 +237,8 @@ func _draw() -> void:
 	_draw_player()
 	_draw_scope()
 	_draw_waterfall()
+	if map_board_visible:
+		_draw_map_board()
 	if show_target:
 		var target = _get_target_broadcast()
 		draw_circle(target["position"], 8.0, Color(1.0, 0.45, 0.3))
@@ -251,6 +262,39 @@ func _draw_player() -> void:
 	draw_circle(player_position, PLAYER_RADIUS, Color(0.38, 0.81, 0.95))
 	draw_line(player_position, player_position + aim_vector * 32.0, Color(0.98, 0.91, 0.46), 3.0)
 	draw_arc(player_position, 20.0, aim_vector.angle() - 0.45, aim_vector.angle() + 0.45, 16, Color(0.98, 0.91, 0.46, 0.4), 2.0)
+
+
+func _draw_map_board() -> void:
+	draw_rect(Rect2(Vector2.ZERO, WORLD_SIZE), Color(0.04, 0.06, 0.08, 0.78))
+	draw_rect(MAP_BOARD_RECT.grow(6.0), Color(0.11, 0.11, 0.10, 0.94))
+	draw_rect(MAP_BOARD_RECT, Color(0.95, 0.94, 0.90))
+	if map_texture != null:
+		draw_texture_rect(map_texture, MAP_BOARD_RECT, false, Color(0.98, 0.98, 0.96, 1.0))
+	draw_rect(MAP_BOARD_RECT, Color(0.16, 0.12, 0.08, 0.9), false, 2.0)
+	for bearing in bearings:
+		var origin = _map_board_point(bearing["origin"])
+		var end_point = _map_board_point(bearing["origin"] + bearing["direction"] * BEARING_LENGTH)
+		draw_line(origin, end_point, Color(0.12, 0.62, 0.88, 0.82), 2.0)
+		draw_circle(origin, 4.0, Color(0.92, 0.97, 1.0))
+	var player_marker = _map_board_point(player_position)
+	draw_circle(player_marker, 7.0, Color(0.28, 0.78, 0.96))
+	if fix_position != null:
+		var fix_marker = _map_board_point(fix_position)
+		draw_line(fix_marker + Vector2(-8, -8), fix_marker + Vector2(8, 8), Color(0.95, 0.34, 0.22), 2.0)
+		draw_line(fix_marker + Vector2(-8, 8), fix_marker + Vector2(8, -8), Color(0.95, 0.34, 0.22), 2.0)
+	if show_target:
+		var target = _get_target_broadcast()
+		var target_marker = _map_board_point(target["position"])
+		draw_circle(target_marker, 6.0, Color(1.0, 0.75, 0.26))
+
+
+func _map_board_point(world_position: Vector2) -> Vector2:
+	var ratio_x = clamp((world_position.x - PLAY_AREA.position.x) / PLAY_AREA.size.x, 0.0, 1.0)
+	var ratio_y = clamp((world_position.y - PLAY_AREA.position.y) / PLAY_AREA.size.y, 0.0, 1.0)
+	return Vector2(
+		MAP_BOARD_RECT.position.x + ratio_x * MAP_BOARD_RECT.size.x,
+		MAP_BOARD_RECT.position.y + ratio_y * MAP_BOARD_RECT.size.y
+	)
 
 
 func _draw_bearings() -> void:
@@ -337,6 +381,7 @@ func _reset_hunt() -> void:
 	result_text = ""
 	show_target = false
 	fix_position = null
+	map_board_visible = false
 	smoothed_voice_level = 0.0
 	smoothed_noise_level = 1.0
 	scanner_active = false
@@ -351,6 +396,7 @@ func _reset_hunt() -> void:
 	player_position = Vector2(520, 560)
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
+	_sync_overlay_visibility()
 
 
 func _update_status() -> void:
@@ -372,6 +418,8 @@ func _update_status() -> void:
 	if result_text != "":
 		lines.append(result_text)
 	status_label.text = "\n".join(lines)
+	if map_board_status_label != null:
+		map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s" % [df_frequency, bearings.size(), fix_text]
 
 
 func _setup_audio() -> void:
@@ -412,6 +460,20 @@ func _unlock_scanner() -> void:
 	current_scanner_broadcast_id = ""
 	scanner_button.text = "Start Scan"
 	result_text = "Scanner unlocked."
+
+
+func _toggle_map_board() -> void:
+	map_board_visible = not map_board_visible
+	_sync_overlay_visibility()
+	result_text = "Map board opened." if map_board_visible else "Map board closed."
+	update()
+
+
+func _sync_overlay_visibility() -> void:
+	if panel != null:
+		panel.visible = not map_board_visible
+	if map_board_overlay != null:
+		map_board_overlay.visible = map_board_visible
 
 
 func _toggle_clean_monitor() -> void:
@@ -1100,6 +1162,10 @@ func testing_unlock_scanner() -> void:
 	_unlock_scanner()
 
 
+func testing_toggle_map_board() -> void:
+	_toggle_map_board()
+
+
 func testing_set_clean_monitor(enabled: bool) -> void:
 	clean_monitor_enabled = enabled
 	if clean_monitor_checkbox != null:
@@ -1142,6 +1208,7 @@ func testing_snapshot() -> Dictionary:
 		"scanner_voice_volume_db": scanner_voice_player.volume_db if scanner_voice_player != null else -80.0,
 		"df_has_stream": df_voice_player != null and df_voice_player.stream != null,
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
+		"map_board_visible": map_board_visible,
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,

@@ -163,6 +163,13 @@ margin_right = 236.0
 margin_bottom = 546.0
 text = "Unlock"
 
+[node name="MapBoardButton" type="Button" parent="HUD/Root/Panel"]
+margin_left = 246.0
+margin_top = 522.0
+margin_right = 336.0
+margin_bottom = 546.0
+text = "Map"
+
 [node name="DFVolumeLabel" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
 margin_top = 554.0
@@ -218,7 +225,7 @@ margin_left = 16.0
 margin_top = 640.0
 margin_right = 336.0
 margin_bottom = 664.0
-text = "WASD move, mouse aim, tune DF, press Space for bearings, click to place a fix. F scans. C toggles clean monitor."
+text = "WASD move, mouse aim, tune DF, press Space for bearings, click to place a fix. F scans. M opens the map board."
 autowrap = true
 
 [node name="SubmitButton" type="Button" parent="HUD/Root/Panel"]
@@ -234,3 +241,33 @@ margin_top = 700.0
 margin_right = 214.0
 margin_bottom = 724.0
 text = "Reset"
+
+[node name="MapBoardOverlay" type="Control" parent="HUD/Root"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="MapBoardTitle" type="Label" parent="HUD/Root/MapBoardOverlay"]
+margin_left = 410.0
+margin_top = 20.0
+margin_right = 910.0
+margin_bottom = 46.0
+text = "Map Board"
+align = 1
+
+[node name="MapBoardHint" type="Label" parent="HUD/Root/MapBoardOverlay"]
+margin_left = 360.0
+margin_top = 680.0
+margin_right = 960.0
+margin_bottom = 706.0
+text = "M closes the map board. Use this view to compare bearings and place a fix."
+align = 1
+
+[node name="MapBoardStatus" type="Label" parent="HUD/Root/MapBoardOverlay"]
+margin_left = 400.0
+margin_top = 46.0
+margin_right = 920.0
+margin_bottom = 86.0
+text = "Status"
+align = 1

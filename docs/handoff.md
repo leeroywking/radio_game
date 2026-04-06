@@ -10,6 +10,7 @@ The current build includes:
 - Multiple simultaneous broadcasters with one designated as the real target conversation
 - DF receiver tuning by slider and direct numeric entry
 - Click-to-tune frequency selection from the waterfall
+- A first-pass map board overlay that can be toggled during the hunt for a larger topo view
 - A manual-start autoscanner with lock and unlock behavior
 - Separate DF and scanner volume controls
 - A visible full-band waterfall rendered in the HUD
@@ -69,7 +70,7 @@ The current build includes:
   The headless testing agent now asserts that the DF path is actually audible on the target broadcast and that the DF player self-recovers if playback stops while the tuned broadcast remains unchanged.
 
 - `.github/workflows/ci.yml`
-  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and deploys the HTML5 build to GitHub Pages on pushes to `master` or `main`.
+  GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and publishes branch previews plus the default HTML5 build to GitHub Pages.
 
 - `docs/architecture.md`
   High-level product/system architecture direction.
@@ -92,6 +93,7 @@ The current build includes:
 - The waterfall now renders inside the HUD as a texture-backed display. This mattered because the old `Node2D` drawing path sat behind the opaque panel and could be effectively invisible even when waterfall data existed.
 - Clicking inside the waterfall now tunes the DF frequency. The display energy is also derived from the live `broadcasts` list and distance-based station strength, so it tracks the current scenario instead of a generic fake band texture.
 - Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
+- The map board is only a first step toward manual plotting. It shows the topo view, player marker, fix marker, and captured bearings, but it is not yet a full notebook / protractor workflow.
 
 ## Recommended next steps
 
