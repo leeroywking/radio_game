@@ -10,6 +10,9 @@
 - Added a first-person heading model, simple can-antenna view model, and tactical inset map that shows captured lines of bearing.
 - Added in-view first-person reading overlays for heading, DF frequency, last reading, and step prompt text.
 - Added regression cases covering first-person mode toggle behavior and first-person reading capture.
+- Changed first-person controls to Doom-style movement, with `WASD` moving relative to heading instead of map axes.
+- Expanded the hunt world to a much larger scrolling map window while keeping the visible overhead play area and player movement speed consistent.
+- Added broader terrain cues to the first-person view using the Washington hillshade as a source for hills, ridges, and valleys.
 - Fixed DF/scanner shared-broadcast playback so both receivers stay sample-aligned on the same conversation.
 - Added a deterministic regression test for DF/scanner shared-broadcast sync.
 - Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.

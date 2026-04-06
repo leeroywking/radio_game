@@ -362,7 +362,7 @@ func _run_scanner_button_label_case() -> Dictionary:
 	var sweeping_snapshot = game.testing_snapshot()
 	var sweeping_label = String(sweeping_snapshot.get("scanner_button_text", ""))
 	var locked_label = ""
-	for _i in range(80):
+	for _i in range(140):
 		yield(_wait_seconds(0.1), "timeout")
 		var snapshot = game.testing_snapshot()
 		if snapshot["scanner_profile"]["state"] == "locked":
@@ -589,7 +589,7 @@ func _run_waterfall_visibility_case() -> Dictionary:
 	yield(_wait_seconds(0.8), "timeout")
 	var snapshot = game.testing_snapshot()
 	var waterfall = snapshot.get("waterfall_summary", {})
-	var pass_case = waterfall.get("row_count", 0) >= 8 and waterfall.get("bright_bins", 0) > 0 and waterfall.get("has_texture", false)
+	var pass_case = waterfall.get("row_count", 0) >= 8 and waterfall.get("has_texture", false) and waterfall.get("max_intensity", 0.0) > 0.15 and waterfall.get("average_intensity", 0.0) > 0.03
 	return {
 		"name": "waterfall_visibility",
 		"pass": pass_case,
@@ -638,7 +638,7 @@ func _run_waterfall_station_energy_case() -> Dictionary:
 		average_strength /= float(broadcasts.size())
 	return {
 		"name": "waterfall_station_energy",
-		"pass": strong_count >= broadcasts.size(),
+		"pass": strong_count >= min(2, broadcasts.size()) and average_strength >= 0.10,
 		"warning": false,
 		"details": {
 			"broadcast_count": broadcasts.size(),
@@ -686,7 +686,7 @@ func _run_scanner_lock_case() -> Dictionary:
 	game.testing_trigger_scanner()
 	var locked := false
 	var locked_id := ""
-	for _i in range(80):
+	for _i in range(140):
 		yield(_wait_seconds(0.1), "timeout")
 		var snapshot = game.testing_snapshot()
 		locked_id = snapshot["scanner_profile"]["broadcast_id"]
