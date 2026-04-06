@@ -6,7 +6,7 @@ if [[ $# -lt 2 || $# -gt 3 ]]; then
   exit 1
 fi
 
-SITE_DIR="$1"
+SITE_DIR="$(cd "$1" && pwd)"
 TARGET_DIR="$2"
 COMMIT_MESSAGE="${3:-Update GitHub Pages content}"
 PAGES_BRANCH="gh-pages"
