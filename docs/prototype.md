@@ -11,6 +11,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Top-down navigation
 - Directional aiming with the mouse
 - Multiple simultaneous broadcasters on the map
+- Five distinct clean educational broadcasters plus one target conversation
 - Frequency-hopping autoscanner with manual scan trigger, lock, and unlock
 - DF frequency tuning
 - Optional clean-monitor playback for hearing the source without simulated degradation
@@ -51,6 +52,7 @@ The demo now includes a simplified scanner path:
 - The player can unlock the scanner and resume hunting
 - The DF receiver and scanner have separate volume controls
 - Each broadcaster can be routed to left, right, or both channels for demo and training experiments
+- Educational decoys now use a broader mix of clean voice clips so identifying the real conversation takes a bit more discretion
 
 The waterfall display is currently a fake but structured spectrogram:
 

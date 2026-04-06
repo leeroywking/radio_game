@@ -51,6 +51,26 @@ const BROADCAST_TEMPLATES := [
 		"position": Vector2(760, 600)
 	},
 	{
+		"id": "lesson_delta",
+		"label": "Educational Delta",
+		"path": "res://assets/audio/training_voice_human_voice.mp3",
+		"gain_db": -1.5,
+		"type": "clean",
+		"role": "education",
+		"frequency": 144.540,
+		"position": Vector2(980, 140)
+	},
+	{
+		"id": "lesson_echo",
+		"label": "Educational Echo",
+		"path": "res://assets/audio/training_voice_umbriel.mp3",
+		"gain_db": -1.0,
+		"type": "clean",
+		"role": "education",
+		"frequency": 146.780,
+		"position": Vector2(1180, 300)
+	},
+	{
 		"id": "real_conversation",
 		"label": "Real Conversation",
 		"path": "res://assets/audio/ham_contest_exchange.wav",
@@ -374,14 +394,14 @@ func _update_status() -> void:
 
 func _setup_audio() -> void:
 	for broadcast in BROADCAST_TEMPLATES:
-		audio_stream_cache[broadcast["id"]] = _load_wav_stream(broadcast["path"], true)
+		audio_stream_cache[broadcast["id"]] = _load_loopable_stream(broadcast["path"], true)
 	df_voice_player = AudioStreamPlayer.new()
 	df_voice_player.bus = "Master"
 	add_child(df_voice_player)
 	df_voice_player.play()
 
 	df_noise_player = AudioStreamPlayer.new()
-	df_noise_player.stream = _load_wav_stream(STATIC_WAV_PATH, true)
+	df_noise_player.stream = _load_loopable_stream(STATIC_WAV_PATH, true)
 	df_noise_player.bus = "Master"
 	add_child(df_noise_player)
 	df_noise_player.play()
@@ -390,6 +410,21 @@ func _setup_audio() -> void:
 	scanner_voice_player.bus = "Master"
 	add_child(scanner_voice_player)
 	scanner_voice_player.play()
+
+
+func _load_loopable_stream(path: String, should_loop: bool):
+	var loaded = load(path)
+	if loaded != null:
+		var duplicated = loaded.duplicate(true)
+		if duplicated is AudioStreamSample:
+			duplicated.loop_mode = AudioStreamSample.LOOP_FORWARD if should_loop else AudioStreamSample.LOOP_DISABLED
+		elif duplicated is AudioStreamMP3:
+			duplicated.loop = should_loop
+			duplicated.loop_offset = 0.0
+		return duplicated
+	if path.to_lower().ends_with(".wav"):
+		return _load_wav_stream(path, should_loop)
+	return null
 
 
 func _trigger_scanner() -> void:

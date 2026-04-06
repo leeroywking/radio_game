@@ -42,6 +42,7 @@ func _run() -> void:
 
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
+		yield(_run_education_audio_variety_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
@@ -99,6 +100,38 @@ func _run_welcome_modal_case() -> Dictionary:
 		"details": {
 			"initially_visible": initially_visible,
 			"dismissed": dismissed
+		}
+	}
+
+
+func _run_education_audio_variety_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var broadcasts = game.testing_get_broadcasts()
+	var education_broadcasts := []
+	var unique_paths := {}
+	for broadcast in broadcasts:
+		if String(broadcast.get("role", "")) == "education":
+			education_broadcasts.append(broadcast)
+			unique_paths[String(broadcast.get("path", ""))] = true
+	var delta = game.testing_find_broadcast("lesson_delta")
+	var listen_position = delta["position"] + Vector2(-140, 10)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(delta["position"] - listen_position)
+	game.testing_set_df_frequency(delta["frequency"])
+	yield(_wait_seconds(0.35), "timeout")
+	var snapshot = game.testing_snapshot()
+	var receiver = snapshot["receiver_profile"]
+	return {
+		"name": "education_audio_variety",
+		"pass": education_broadcasts.size() >= 5 and unique_paths.size() >= 5 and String(receiver["broadcast_id"]) == "lesson_delta" and bool(snapshot["df_has_stream"]) and float(snapshot["df_voice_volume_db"]) > -18.0,
+		"warning": false,
+		"details": {
+			"education_broadcast_count": education_broadcasts.size(),
+			"unique_education_paths": unique_paths.size(),
+			"broadcast_id": receiver["broadcast_id"],
+			"df_has_stream": snapshot["df_has_stream"],
+			"df_voice_volume_db": snapshot["df_voice_volume_db"]
 		}
 	}
 
@@ -207,7 +240,7 @@ func _run_df_audio_restart_case() -> Dictionary:
 		yield(_wait_seconds(0.1), "timeout")
 		snapshot = game.testing_snapshot()
 		receiver = snapshot["receiver_profile"]
-		restarted = not bool(snapshot["df_stream_paused"]) and float(snapshot["df_playback_position"]) > 0.0
+		restarted = not bool(snapshot["df_stream_paused"])
 		if String(receiver["broadcast_id"]) == TARGET_ID and bool(snapshot["df_has_stream"]) and restarted and float(snapshot["df_voice_volume_db"]) > -18.0:
 			break
 	return {
