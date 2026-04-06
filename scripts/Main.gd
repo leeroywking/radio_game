@@ -755,7 +755,7 @@ func _update_scanner(delta: float) -> Dictionary:
 	if not scanner_active and not scanner_locked:
 		scanner_frequency = SCANNER_MIN_FREQ
 	if scanner_locked:
-		scanner_button.text = "Rescan"
+		scanner_button.text = "Resume Scan"
 	elif scanner_active:
 		scanner_button.text = "Scanning"
 	else:
@@ -1197,6 +1197,7 @@ func testing_snapshot() -> Dictionary:
 		"scanner_voice_volume_db": scanner_voice_player.volume_db if scanner_voice_player != null else -80.0,
 		"df_has_stream": df_voice_player != null and df_voice_player.stream != null,
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
+		"scanner_button_text": scanner_button.text if scanner_button != null else "",
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,
 		"hud_layout_summary": testing_get_hud_layout_summary()

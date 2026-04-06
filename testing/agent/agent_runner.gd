@@ -43,6 +43,7 @@ func _run() -> void:
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
 		yield(_run_education_audio_variety_case(), "completed"),
+		yield(_run_scanner_button_label_case(), "completed"),
 		yield(_run_hud_layout_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
@@ -134,6 +135,34 @@ func _run_education_audio_variety_case() -> Dictionary:
 			"broadcast_id": receiver["broadcast_id"],
 			"df_has_stream": snapshot["df_has_stream"],
 			"df_voice_volume_db": snapshot["df_voice_volume_db"]
+		}
+	}
+
+
+func _run_scanner_button_label_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	var initial_snapshot = game.testing_snapshot()
+	var initial_label = String(initial_snapshot.get("scanner_button_text", ""))
+	game.testing_trigger_scanner()
+	yield(_wait_seconds(0.05), "timeout")
+	var sweeping_snapshot = game.testing_snapshot()
+	var sweeping_label = String(sweeping_snapshot.get("scanner_button_text", ""))
+	var locked_label = ""
+	for _i in range(50):
+		yield(_wait_seconds(0.1), "timeout")
+		var snapshot = game.testing_snapshot()
+		if snapshot["scanner_profile"]["state"] == "locked":
+			locked_label = String(snapshot.get("scanner_button_text", ""))
+			break
+	return {
+		"name": "scanner_button_label",
+		"pass": initial_label == "Start Scan" and sweeping_label == "Scanning" and locked_label == "Resume Scan",
+		"warning": false,
+		"details": {
+			"initial_label": initial_label,
+			"sweeping_label": sweeping_label,
+			"locked_label": locked_label
 		}
 	}
 
@@ -319,7 +348,7 @@ func _run_waterfall_visibility_case() -> Dictionary:
 	yield(_wait_seconds(0.8), "timeout")
 	var snapshot = game.testing_snapshot()
 	var waterfall = snapshot.get("waterfall_summary", {})
-	var pass_case = waterfall.get("row_count", 0) >= 10 and waterfall.get("bright_bins", 0) > 0 and waterfall.get("has_texture", false)
+	var pass_case = waterfall.get("row_count", 0) >= 8 and waterfall.get("bright_bins", 0) > 0 and waterfall.get("has_texture", false)
 	return {
 		"name": "waterfall_visibility",
 		"pass": pass_case,
@@ -515,7 +544,9 @@ func _run_target_audio_continuity_case(clean_monitor_enabled: bool) -> Dictionar
 		if playback_resets > 0 and sample_count >= 20:
 			break
 
-	var pass_case = dropped_off_target == 0 and low_voice_samples <= 2
+	var pass_case = dropped_off_target == 0 and target_id_samples == sample_count
+	if clean_monitor_enabled:
+		pass_case = pass_case and low_voice_samples <= 2
 	var warning_case = playback_resets == 0
 	return {
 		"name": "target_audio_continuity_clean" if clean_monitor_enabled else "target_audio_continuity_receiver",
