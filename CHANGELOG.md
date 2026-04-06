@@ -5,7 +5,10 @@
 - Added `VERSION` as the source of truth for shipped release versions.
 - Changed GitHub release automation to publish versioned releases only when `VERSION` changes on `master` or `main`.
 - Added CI enforcement so product-facing PRs must bump `VERSION`.
-- Bumped project version to `0.4.1` for the first-person can-antenna mode expansion.
+- Bumped project version to `0.4.2` for the native 3D first-person replacement pass.
+- Added `docs/native-3d-first-person-plan.md` documenting the decision to use Godot native 3D terrain/controller architecture instead of a Doom-style sub-engine.
+- Replaced the old first-person camera shim with a native 3D player-body path over generated terrain.
+- Added terrain-mesh and elevation-response regression coverage for the first-person mode.
 - Added `docs/first-person-can-antenna-plan.md` describing the first-person DF architecture, phases, and integration plan.
 - Added a first vertical slice of a first-person can-antenna mode using a low-resolution 3D viewport inside the existing 2D game.
 - Added a first-person heading model, simple can-antenna view model, and tactical inset map that shows captured lines of bearing.

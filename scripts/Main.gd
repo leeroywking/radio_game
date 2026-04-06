@@ -22,6 +22,13 @@ const FIRST_PERSON_VIEW_SIZE := Vector2(320, 180)
 const FIRST_PERSON_CAMERA_HEIGHT := 1.7
 const FIRST_PERSON_WORLD_SCALE := 0.03
 const FIRST_PERSON_MINIMAP_SIZE := 216
+const FIRST_PERSON_TERRAIN_GRID_X := 40
+const FIRST_PERSON_TERRAIN_GRID_Y := 32
+const FIRST_PERSON_TERRAIN_HEIGHT := 16.0
+const FIRST_PERSON_TERRAIN_BASE := -4.0
+const FIRST_PERSON_LOOK_SENSITIVITY := 0.18
+const FIRST_PERSON_GRAVITY := 24.0
+const FIRST_PERSON_PITCH_LIMIT := 58.0
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
 const SCANNER_MIN_FREQ := 144.000
@@ -108,10 +115,17 @@ var map_image = null
 var waterfall_texture = null
 var first_person_viewport = null
 var first_person_world_root = null
+var first_person_player_body = null
+var first_person_pitch_pivot = null
 var first_person_camera = null
 var first_person_ground = null
+var first_person_terrain = null
+var first_person_terrain_body = null
+var first_person_terrain_shape = null
 var first_person_props := []
 var first_person_minimap_texture = null
+var first_person_last_camera_height := FIRST_PERSON_CAMERA_HEIGHT
+var first_person_velocity := Vector3.ZERO
 
 var df_voice_player = null
 var df_noise_player = null
@@ -125,6 +139,7 @@ var map_board_visible := false
 var first_person_mode := false
 var first_person_mouse_locked := false
 var first_person_heading_deg := 90.0
+var first_person_pitch_deg := -6.0
 var df_frequency := 145.000
 var df_volume := 0.85
 var scanner_volume := 0.70
@@ -222,22 +237,17 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var movement = Vector2.ZERO
 	if first_person_mode:
-		var forward_input = Input.get_action_strength("move_up") - Input.get_action_strength("move_down")
-		var strafe_input = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-		var forward = _get_aim_vector()
-		var right = Vector2(-forward.y, forward.x)
-		movement = forward * forward_input + right * strafe_input
+		_update_first_person_motion(delta)
 	else:
+		var movement = Vector2.ZERO
 		movement.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
 		movement.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
-	if movement.length() > 1.0:
-		movement = movement.normalized()
-	var movement_speed = FIRST_PERSON_PLAYER_SPEED if first_person_mode else PLAYER_SPEED
-	player_position += movement * movement_speed * delta
-	player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
-	player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
+		if movement.length() > 1.0:
+			movement = movement.normalized()
+		player_position += movement * PLAYER_SPEED * delta
+		player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
+		player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
 	update()
 
 
@@ -264,7 +274,8 @@ func _input(event: InputEvent) -> void:
 			get_tree().set_input_as_handled()
 			return
 	if first_person_mode and event is InputEventMouseMotion:
-		first_person_heading_deg = fmod(first_person_heading_deg + event.relative.x * 0.18 + 360.0, 360.0)
+		first_person_heading_deg = fmod(first_person_heading_deg + event.relative.x * FIRST_PERSON_LOOK_SENSITIVITY + 360.0, 360.0)
+		first_person_pitch_deg = clamp(first_person_pitch_deg - event.relative.y * FIRST_PERSON_LOOK_SENSITIVITY, -FIRST_PERSON_PITCH_LIMIT, FIRST_PERSON_PITCH_LIMIT)
 		update()
 		return
 	if event.is_action_pressed("capture_bearing"):
@@ -316,9 +327,11 @@ func _toggle_first_person_mode() -> void:
 	first_person_mode = not first_person_mode
 	if first_person_mode:
 		first_person_heading_deg = _bearing_degrees(_get_aim_vector())
+		_sync_first_person_body_from_map()
 		_set_first_person_mouse_lock(true)
-		result_text = "First-person can-antenna view enabled."
+		result_text = "Native 3D first-person can-antenna view enabled."
 	else:
+		_sync_map_from_first_person_body()
 		_set_first_person_mouse_lock(false)
 		result_text = "Returned to top-down view."
 	_sync_first_person_visibility()
@@ -361,34 +374,62 @@ func _setup_first_person_view() -> void:
 	sun.rotation_degrees = Vector3(-54.0, -38.0, 0.0)
 	first_person_world_root.add_child(sun)
 
-	var ground_mesh = MeshInstance.new()
+	first_person_terrain_body = StaticBody.new()
+	first_person_terrain_body.name = "TerrainBody"
+	first_person_world_root.add_child(first_person_terrain_body)
+
+	first_person_terrain = MeshInstance.new()
+	first_person_terrain.name = "TerrainMesh"
+	first_person_terrain_body.add_child(first_person_terrain)
+
+	var terrain_collision = CollisionShape.new()
+	first_person_terrain_shape = HeightMapShape.new()
+	terrain_collision.shape = first_person_terrain_shape
+	first_person_terrain_body.add_child(terrain_collision)
+
+	first_person_ground = MeshInstance.new()
 	var ground_shape = CubeMesh.new()
-	ground_shape.size = Vector3(72.0, 0.1, 72.0)
-	ground_mesh.mesh = ground_shape
-	ground_mesh.translation = Vector3(0.0, -0.05, 0.0)
+	ground_shape.size = Vector3(40.0, 0.2, 28.0)
+	first_person_ground.mesh = ground_shape
+	first_person_ground.translation = Vector3(0.0, FIRST_PERSON_TERRAIN_BASE - 0.2, 0.0)
 	var ground_material = SpatialMaterial.new()
-	ground_material.albedo_color = Color(0.32, 0.39, 0.24)
-	ground_material.flags_unshaded = false
-	ground_mesh.material_override = ground_material
-	first_person_world_root.add_child(ground_mesh)
-	first_person_ground = ground_mesh
+	ground_material.albedo_color = Color(0.16, 0.19, 0.12)
+	first_person_ground.material_override = ground_material
+	first_person_world_root.add_child(first_person_ground)
+
+	first_person_player_body = KinematicBody.new()
+	first_person_player_body.name = "FirstPersonPlayer"
+	first_person_world_root.add_child(first_person_player_body)
+
+	var body_collision = CollisionShape.new()
+	var body_capsule = CapsuleShape.new()
+	body_capsule.radius = 0.34
+	body_capsule.height = 1.15
+	body_collision.shape = body_capsule
+	body_collision.translation = Vector3(0.0, 0.92, 0.0)
+	first_person_player_body.add_child(body_collision)
+
+	first_person_pitch_pivot = Spatial.new()
+	first_person_pitch_pivot.name = "PitchPivot"
+	first_person_pitch_pivot.translation = Vector3(0.0, FIRST_PERSON_CAMERA_HEIGHT, 0.0)
+	first_person_player_body.add_child(first_person_pitch_pivot)
 
 	first_person_camera = Camera.new()
 	first_person_camera.current = true
-	first_person_camera.fov = 78.0
+	first_person_camera.fov = 82.0
 	first_person_camera.near = 0.05
-	first_person_camera.far = 200.0
-	first_person_world_root.add_child(first_person_camera)
+	first_person_camera.far = 250.0
+	first_person_pitch_pivot.add_child(first_person_camera)
 
 	var rig = Spatial.new()
-	rig.translation = Vector3(0.28, -0.22, -0.58)
+	rig.translation = Vector3(0.30, -0.26, -0.52)
 	first_person_camera.add_child(rig)
 
 	var can_mesh = MeshInstance.new()
 	var can_shape = CylinderMesh.new()
 	can_shape.top_radius = 0.08
 	can_shape.bottom_radius = 0.11
-	can_shape.height = 0.46
+	can_shape.height = 0.52
 	can_mesh.mesh = can_shape
 	can_mesh.rotation_degrees = Vector3(88.0, 0.0, -18.0)
 	can_mesh.translation = Vector3(0.0, -0.08, 0.0)
@@ -402,7 +443,7 @@ func _setup_first_person_view() -> void:
 	var handle_shape = CubeMesh.new()
 	handle_shape.size = Vector3(0.06, 0.18, 0.06)
 	handle_mesh.mesh = handle_shape
-	handle_mesh.translation = Vector3(-0.02, -0.18, 0.08)
+	handle_mesh.translation = Vector3(-0.02, -0.20, 0.08)
 	var handle_material = SpatialMaterial.new()
 	handle_material.albedo_color = Color(0.18, 0.14, 0.10)
 	handle_mesh.material_override = handle_material
@@ -431,16 +472,15 @@ func _sync_first_person_visibility() -> void:
 
 
 func _update_first_person_view() -> void:
-	if first_person_viewport == null or first_person_camera == null:
+	if first_person_viewport == null or first_person_camera == null or first_person_player_body == null:
 		return
 	if not first_person_mode:
 		return
-	var fp_position = _world_to_first_person(player_position)
-	var terrain_height = (_sample_map_elevation(player_position) - 0.5) * 3.0
-	first_person_camera.translation = Vector3(fp_position.x, FIRST_PERSON_CAMERA_HEIGHT + terrain_height, fp_position.z)
-	var aim_vector = _get_aim_vector()
-	var forward = Vector3(aim_vector.x, 0.0, aim_vector.y)
-	first_person_camera.rotation = Vector3(0.0, atan2(-forward.x, -forward.z), 0.0)
+	first_person_player_body.rotation_degrees.y = first_person_heading_deg
+	if first_person_pitch_pivot != null:
+		first_person_pitch_pivot.rotation_degrees.x = first_person_pitch_deg
+	_sync_map_from_first_person_body()
+	first_person_last_camera_height = first_person_camera.global_transform.origin.y
 	_update_first_person_minimap()
 
 
@@ -452,6 +492,8 @@ func _rebuild_first_person_props() -> void:
 			prop.queue_free()
 	first_person_props.clear()
 
+	_rebuild_first_person_terrain()
+
 	var prop_positions := []
 	for broadcast in broadcasts:
 		prop_positions.append(broadcast["position"])
@@ -462,7 +504,7 @@ func _rebuild_first_person_props() -> void:
 
 	for index in range(prop_positions.size()):
 		var source_position = prop_positions[index]
-		var terrain_height = (_sample_map_elevation(source_position) - 0.5) * 4.0
+		var terrain_height = _first_person_height_at(source_position)
 		var trunk = MeshInstance.new()
 		var trunk_shape = CubeMesh.new()
 		trunk_shape.size = Vector3(0.34, 1.6 + float(index % 3) * 0.5, 0.34)
@@ -486,46 +528,100 @@ func _rebuild_first_person_props() -> void:
 		first_person_world_root.add_child(crown)
 		first_person_props.append(crown)
 
-	var hill_samples_x = 11
-	var hill_samples_y = 8
-	for sample_y in range(hill_samples_y):
-		for sample_x in range(hill_samples_x):
-			var world_position = Vector2(
-				lerp(PLAY_AREA.position.x + 24.0, PLAY_AREA.end.x - 24.0, float(sample_x) / float(max(hill_samples_x - 1, 1))),
-				lerp(PLAY_AREA.position.y + 24.0, PLAY_AREA.end.y - 24.0, float(sample_y) / float(max(hill_samples_y - 1, 1)))
-			)
-			var elevation = _sample_map_elevation(world_position)
-			var fp_world_position = _world_to_first_person(world_position)
-			var hill = MeshInstance.new()
-			var hill_shape = CubeMesh.new()
-			var terrain_bias = abs(elevation - 0.5) * 2.0
-			var hill_width = lerp(3.5, 10.0, terrain_bias)
-			var hill_depth = lerp(3.0, 9.0, terrain_bias)
-			var hill_height = lerp(0.3, 5.5, terrain_bias)
-			hill_shape.size = Vector3(hill_width, hill_height, hill_depth)
-			hill.mesh = hill_shape
-			var base_height = (elevation - 0.5) * 4.5
-			hill.translation = Vector3(fp_world_position.x, base_height + hill_height * 0.5 - 0.02, fp_world_position.z)
-			var hill_material = SpatialMaterial.new()
-			hill_material.albedo_color = Color(
-				lerp(0.22, 0.46, terrain_bias),
-				lerp(0.28, 0.41, terrain_bias),
-				lerp(0.16, 0.28, terrain_bias)
-			)
-			hill.material_override = hill_material
-			first_person_world_root.add_child(hill)
-			first_person_props.append(hill)
-			if terrain_bias > 0.48:
-				var ridge = MeshInstance.new()
-				var ridge_shape = CubeMesh.new()
-				ridge_shape.size = Vector3(hill_width * 0.6, hill_height * 0.55, hill_depth * 0.5)
-				ridge.mesh = ridge_shape
-				ridge.translation = hill.translation + Vector3(0.0, hill_height * 0.48, 0.0)
-				var ridge_material = SpatialMaterial.new()
-				ridge_material.albedo_color = Color(0.46, 0.45, 0.42)
-				ridge.material_override = ridge_material
-				first_person_world_root.add_child(ridge)
-				first_person_props.append(ridge)
+	var rock_positions := [
+		Vector2(PLAY_AREA.position.x + 170.0, PLAY_AREA.position.y + 118.0),
+		Vector2(PLAY_AREA.end.x - 190.0, PLAY_AREA.position.y + 138.0),
+		Vector2(PLAY_AREA.position.x + 230.0, PLAY_AREA.end.y - 158.0),
+		Vector2(PLAY_AREA.end.x - 170.0, PLAY_AREA.end.y - 132.0)
+	]
+	for rock_position in rock_positions:
+		var rock_height = _first_person_height_at(rock_position)
+		var rock = MeshInstance.new()
+		var rock_shape = CubeMesh.new()
+		var rock_scale = 0.9 + abs(_sample_map_elevation(rock_position) - 0.5) * 2.0
+		rock_shape.size = Vector3(0.9 * rock_scale, 0.6 * rock_scale, 0.8 * rock_scale)
+		rock.mesh = rock_shape
+		var rock_fp = _world_to_first_person(rock_position)
+		rock.translation = Vector3(rock_fp.x, rock_height + rock_shape.size.y * 0.5, rock_fp.z)
+		var rock_material = SpatialMaterial.new()
+		rock_material.albedo_color = Color(0.44, 0.44, 0.42)
+		rock.material_override = rock_material
+		first_person_world_root.add_child(rock)
+		first_person_props.append(rock)
+
+
+func _rebuild_first_person_terrain() -> void:
+	if first_person_terrain == null or first_person_terrain_shape == null:
+		return
+	var mesh_tool = SurfaceTool.new()
+	mesh_tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	mesh_tool.add_smooth_group(true)
+	var heights := PoolRealArray()
+	var low_color = Color(0.18, 0.24, 0.15)
+	var mid_color = Color(0.34, 0.41, 0.24)
+	var high_color = Color(0.52, 0.50, 0.44)
+	for grid_y in range(FIRST_PERSON_TERRAIN_GRID_Y):
+		for grid_x in range(FIRST_PERSON_TERRAIN_GRID_X):
+			var world_position = _terrain_world_point(grid_x, grid_y)
+			heights.append(_first_person_height_at(world_position))
+	for grid_y in range(FIRST_PERSON_TERRAIN_GRID_Y - 1):
+		for grid_x in range(FIRST_PERSON_TERRAIN_GRID_X - 1):
+			var p00 = _terrain_vertex(grid_x, grid_y)
+			var p10 = _terrain_vertex(grid_x + 1, grid_y)
+			var p01 = _terrain_vertex(grid_x, grid_y + 1)
+			var p11 = _terrain_vertex(grid_x + 1, grid_y + 1)
+			_add_terrain_triangle(mesh_tool, p00, p10, p11, low_color, mid_color, high_color)
+			_add_terrain_triangle(mesh_tool, p00, p11, p01, low_color, mid_color, high_color)
+	var terrain_mesh = mesh_tool.commit()
+	var terrain_material = SpatialMaterial.new()
+	terrain_material.vertex_color_use_as_albedo = true
+	terrain_material.roughness = 1.0
+	terrain_material.metallic = 0.0
+	first_person_terrain.mesh = terrain_mesh
+	first_person_terrain.material_override = terrain_material
+	first_person_terrain_shape.map_width = FIRST_PERSON_TERRAIN_GRID_X
+	first_person_terrain_shape.map_depth = FIRST_PERSON_TERRAIN_GRID_Y
+	first_person_terrain_shape.map_data = heights
+
+
+func _terrain_world_point(grid_x: int, grid_y: int) -> Vector2:
+	return Vector2(
+		lerp(WORLD_BOUNDS.position.x, WORLD_BOUNDS.end.x, float(grid_x) / float(max(FIRST_PERSON_TERRAIN_GRID_X - 1, 1))),
+		lerp(WORLD_BOUNDS.position.y, WORLD_BOUNDS.end.y, float(grid_y) / float(max(FIRST_PERSON_TERRAIN_GRID_Y - 1, 1)))
+	)
+
+
+func _terrain_local_point(grid_x: int, grid_y: int) -> Vector3:
+	var x_ratio = float(grid_x) / float(max(FIRST_PERSON_TERRAIN_GRID_X - 1, 1))
+	var y_ratio = float(grid_y) / float(max(FIRST_PERSON_TERRAIN_GRID_Y - 1, 1))
+	var local_x = lerp(-((FIRST_PERSON_TERRAIN_GRID_X - 1) * 0.5), (FIRST_PERSON_TERRAIN_GRID_X - 1) * 0.5, x_ratio)
+	var local_z = lerp(-((FIRST_PERSON_TERRAIN_GRID_Y - 1) * 0.5), (FIRST_PERSON_TERRAIN_GRID_Y - 1) * 0.5, y_ratio)
+	return Vector3(local_x, 0.0, local_z)
+
+
+func _terrain_vertex(grid_x: int, grid_y: int) -> Dictionary:
+	var world_position = _terrain_world_point(grid_x, grid_y)
+	var local_point = _terrain_local_point(grid_x, grid_y)
+	var height = _first_person_height_at(world_position)
+	return {
+		"position": Vector3(local_point.x, height, local_point.z),
+		"height": height
+	}
+
+
+func _terrain_vertex_color(height: float, low: Color, mid: Color, high: Color) -> Color:
+	var normalized = clamp((height - FIRST_PERSON_TERRAIN_BASE) / max(FIRST_PERSON_TERRAIN_HEIGHT, 0.001), 0.0, 1.0)
+	if normalized < 0.5:
+		return low.linear_interpolate(mid, normalized / 0.5)
+	return mid.linear_interpolate(high, (normalized - 0.5) / 0.5)
+
+
+func _add_terrain_triangle(mesh_tool: SurfaceTool, a: Dictionary, b: Dictionary, c: Dictionary, low: Color, mid: Color, high: Color) -> void:
+	var normal = Plane(a["position"], b["position"], c["position"]).normal.normalized()
+	for vertex in [a, b, c]:
+		mesh_tool.add_color(_terrain_vertex_color(vertex["height"], low, mid, high))
+		mesh_tool.add_normal(normal)
+		mesh_tool.add_vertex(vertex["position"])
 
 func _draw() -> void:
 	_draw_world()
@@ -717,11 +813,67 @@ func _world_point_from_map_board(board_position: Vector2) -> Vector2:
 
 
 func _world_to_first_person(world_position: Vector2) -> Vector3:
+	var x_ratio = clamp((world_position.x - WORLD_BOUNDS.position.x) / WORLD_BOUNDS.size.x, 0.0, 1.0)
+	var y_ratio = clamp((world_position.y - WORLD_BOUNDS.position.y) / WORLD_BOUNDS.size.y, 0.0, 1.0)
 	return Vector3(
-		(world_position.x - WORLD_BOUNDS.position.x - WORLD_BOUNDS.size.x * 0.5) * FIRST_PERSON_WORLD_SCALE,
+		lerp(-((FIRST_PERSON_TERRAIN_GRID_X - 1) * 0.5), (FIRST_PERSON_TERRAIN_GRID_X - 1) * 0.5, x_ratio),
 		0.0,
-		(world_position.y - WORLD_BOUNDS.position.y - WORLD_BOUNDS.size.y * 0.5) * FIRST_PERSON_WORLD_SCALE
+		lerp(-((FIRST_PERSON_TERRAIN_GRID_Y - 1) * 0.5), (FIRST_PERSON_TERRAIN_GRID_Y - 1) * 0.5, y_ratio)
 	)
+
+
+func _first_person_to_world(local_position: Vector3) -> Vector2:
+	var x_ratio = inverse_lerp(-((FIRST_PERSON_TERRAIN_GRID_X - 1) * 0.5), (FIRST_PERSON_TERRAIN_GRID_X - 1) * 0.5, local_position.x)
+	var y_ratio = inverse_lerp(-((FIRST_PERSON_TERRAIN_GRID_Y - 1) * 0.5), (FIRST_PERSON_TERRAIN_GRID_Y - 1) * 0.5, local_position.z)
+	return Vector2(
+		lerp(WORLD_BOUNDS.position.x, WORLD_BOUNDS.end.x, clamp(x_ratio, 0.0, 1.0)),
+		lerp(WORLD_BOUNDS.position.y, WORLD_BOUNDS.end.y, clamp(y_ratio, 0.0, 1.0))
+	)
+
+
+func _first_person_height_at(world_position: Vector2) -> float:
+	return FIRST_PERSON_TERRAIN_BASE + _sample_map_elevation(world_position) * FIRST_PERSON_TERRAIN_HEIGHT
+
+
+func _sync_first_person_body_from_map() -> void:
+	if first_person_player_body == null:
+		return
+	var local_position = _world_to_first_person(player_position)
+	local_position.y = _first_person_height_at(player_position) + 0.2
+	first_person_player_body.translation = local_position
+	first_person_player_body.rotation_degrees.y = first_person_heading_deg
+	if first_person_pitch_pivot != null:
+		first_person_pitch_pivot.rotation_degrees.x = first_person_pitch_deg
+	first_person_velocity = Vector3.ZERO
+	first_person_last_camera_height = local_position.y + FIRST_PERSON_CAMERA_HEIGHT
+
+
+func _sync_map_from_first_person_body() -> void:
+	if first_person_player_body == null:
+		return
+	player_position = _first_person_to_world(first_person_player_body.translation)
+	player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
+	player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
+
+
+func _update_first_person_motion(delta: float) -> void:
+	if first_person_player_body == null:
+		return
+	var forward_input = Input.get_action_strength("move_up") - Input.get_action_strength("move_down")
+	var strafe_input = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+	var yaw_radians = deg2rad(first_person_heading_deg)
+	var forward = Vector3(sin(yaw_radians), 0.0, -cos(yaw_radians))
+	var right = Vector3(cos(yaw_radians), 0.0, sin(yaw_radians))
+	var move_direction = forward * forward_input + right * strafe_input
+	if move_direction.length() > 1.0:
+		move_direction = move_direction.normalized()
+	first_person_velocity.x = move_direction.x * FIRST_PERSON_PLAYER_SPEED * FIRST_PERSON_WORLD_SCALE
+	first_person_velocity.z = move_direction.z * FIRST_PERSON_PLAYER_SPEED * FIRST_PERSON_WORLD_SCALE
+	first_person_velocity.y -= FIRST_PERSON_GRAVITY * delta
+	first_person_velocity = first_person_player_body.move_and_slide(first_person_velocity, Vector3.UP, true, 4, deg2rad(50.0))
+	if first_person_player_body.is_on_floor():
+		first_person_velocity.y = -0.1
+	_sync_map_from_first_person_body()
 
 
 func _update_first_person_minimap() -> void:
@@ -915,12 +1067,14 @@ func _reset_hunt() -> void:
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
 	first_person_heading_deg = 90.0
+	first_person_pitch_deg = -6.0
 	_set_first_person_mouse_lock(false)
 	if df_frequency_slider != null:
 		df_frequency_slider.value = df_frequency
 	_sync_control_labels()
 	_sync_overlay_visibility()
 	_sync_first_person_visibility()
+	_sync_first_person_body_from_map()
 
 
 func _update_status() -> void:
@@ -1815,6 +1969,8 @@ func _random_broadcast_frequency(used_frequencies: Array, broadcast_id: String, 
 
 func testing_set_player_position(position: Vector2) -> void:
 	player_position = position
+	if first_person_mode:
+		_sync_first_person_body_from_map()
 
 
 func testing_set_df_frequency(value: float) -> void:
@@ -1964,10 +2120,13 @@ func testing_snapshot() -> Dictionary:
 		"first_person_mouse_locked": first_person_mouse_locked,
 		"first_person_mode": first_person_mode,
 		"first_person_heading_deg": first_person_heading_deg,
+		"first_person_pitch_deg": first_person_pitch_deg,
+		"first_person_camera_height": first_person_last_camera_height,
 		"first_person_info_text": first_person_info.text if first_person_info != null else "",
 		"first_person_prompt_text": first_person_prompt.text if first_person_prompt != null else "",
 		"last_bearing": last_bearing,
 		"broadcasts": testing_get_broadcasts(),
+		"first_person_terrain_summary": testing_get_first_person_terrain_summary(),
 		"waterfall_summary": waterfall_summary,
 		"map_board_summary": map_board_summary,
 		"bearing_visual_summary": testing_get_bearing_visual_summary(),
@@ -2028,6 +2187,40 @@ func testing_get_hud_layout_summary() -> Dictionary:
 		"instructions_clear_slider": instruction_top >= scanner_slider_bottom + 6.0,
 		"instructions_clear_buttons": instruction_bottom <= submit_top - 6.0,
 		"buttons_within_panel": submit_button != null and (submit_button.rect_position.y + submit_button.rect_size.y) <= panel_bottom - 4.0
+	}
+
+
+func testing_get_first_person_terrain_summary() -> Dictionary:
+	var mesh_present = first_person_terrain != null and first_person_terrain.mesh != null
+	var surface_count = 0
+	var vertex_count = 0
+	if mesh_present:
+		surface_count = first_person_terrain.mesh.get_surface_count()
+		if surface_count > 0:
+			var arrays = first_person_terrain.mesh.surface_get_arrays(0)
+			if arrays.size() > Mesh.ARRAY_VERTEX:
+				vertex_count = arrays[Mesh.ARRAY_VERTEX].size()
+	var sample_positions = [
+		Vector2(PLAY_AREA.position.x + 40.0, PLAY_AREA.position.y + 40.0),
+		Vector2(PLAY_AREA.end.x - 40.0, PLAY_AREA.position.y + 70.0),
+		Vector2(PLAY_AREA.position.x + 60.0, PLAY_AREA.end.y - 50.0),
+		Vector2(PLAY_AREA.end.x - 55.0, PLAY_AREA.end.y - 45.0),
+		Vector2(PLAY_AREA.position.x + PLAY_AREA.size.x * 0.5, PLAY_AREA.position.y + PLAY_AREA.size.y * 0.5)
+	]
+	var min_height = 9999.0
+	var max_height = -9999.0
+	for sample_position in sample_positions:
+		var sample_height = _first_person_height_at(sample_position)
+		min_height = min(min_height, sample_height)
+		max_height = max(max_height, sample_height)
+	return {
+		"mesh_present": mesh_present,
+		"surface_count": surface_count,
+		"vertex_count": vertex_count,
+		"min_height": min_height,
+		"max_height": max_height,
+		"height_span": max_height - min_height,
+		"camera_height": first_person_last_camera_height
 	}
 
 

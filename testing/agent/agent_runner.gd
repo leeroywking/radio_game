@@ -45,6 +45,7 @@ func _run() -> void:
 		yield(_run_paper_map_extent_case(), "completed"),
 		yield(_run_map_board_case(), "completed"),
 		yield(_run_map_board_plotting_case(), "completed"),
+		yield(_run_first_person_terrain_case(), "completed"),
 		yield(_run_first_person_mode_case(), "completed"),
 		yield(_run_first_person_reading_case(), "completed"),
 		yield(_run_training_step_progression_case(), "completed"),
@@ -150,6 +151,43 @@ func _run_paper_map_extent_case() -> Dictionary:
 			"after_view_rect": after_view_rect,
 			"all_on_map": all_on_map,
 			"player_on_map": player_on_map
+		}
+	}
+
+
+func _run_first_person_terrain_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	game.testing_toggle_first_person()
+	yield(_wait_seconds(0.1), "timeout")
+	var first_position = Vector2(450, 120)
+	var second_position = Vector2(1180, 620)
+	game.testing_set_player_position(first_position)
+	yield(_wait_seconds(0.1), "timeout")
+	var first_snapshot = game.testing_snapshot()
+	game.testing_set_player_position(second_position)
+	yield(_wait_seconds(0.1), "timeout")
+	var second_snapshot = game.testing_snapshot()
+	game.testing_toggle_first_person()
+	var terrain_summary = second_snapshot.get("first_person_terrain_summary", {})
+	var first_height = float(first_snapshot.get("first_person_camera_height", 0.0))
+	var second_height = float(second_snapshot.get("first_person_camera_height", 0.0))
+	var passed = bool(terrain_summary.get("mesh_present", false)) \
+		and int(terrain_summary.get("surface_count", 0)) >= 1 \
+		and int(terrain_summary.get("vertex_count", 0)) >= 2000 \
+		and float(terrain_summary.get("height_span", 0.0)) >= 2.0 \
+		and abs(second_height - first_height) >= 0.4
+	return {
+		"name": "first_person_terrain",
+		"pass": passed,
+		"warning": false,
+		"details": {
+			"terrain_summary": terrain_summary,
+			"first_position": first_position,
+			"second_position": second_position,
+			"first_camera_height": first_height,
+			"second_camera_height": second_height,
+			"camera_height_delta": second_height - first_height
 		}
 	}
 

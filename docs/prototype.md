@@ -80,11 +80,12 @@ The map board is now closer to a hand-plotting aid than a simple zoomed view:
 The first-person can-antenna slice now exists as an alternate presentation mode:
 
 - `V` toggles first-person view
-- mouse motion rotates the first-person heading
-- `WASD` uses Doom-style movement in first person, relative to the current heading
+- mouse motion rotates native 3D yaw and pitch
+- `WASD` moves a native 3D first-person body relative to the current heading
 - the same DF simulation and bearing capture logic remain authoritative
 - a small tactical inset map records player position and captured LOBs while in first person
 - a compact in-view overlay shows heading, DF frequency, last reading, and the active prompt
+- the first-person terrain is now a continuous generated heightfield sampled from the WA map, so walking there follows visible rises and dips instead of crossing a flat plane
 - the 3D view is intentionally low-resolution and simple to preserve a retro training feel
 - the overhead hunt still behaves like a fixed paper map, with the full exercise area visible at once
 

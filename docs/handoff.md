@@ -23,7 +23,8 @@ The current build includes:
 - An initial first-person can-antenna mode rendered through a low-resolution 3D viewport
 - A tactical inset map in first-person mode that shows player position and captured LOBs
 - First-person reading overlays that show live heading, DF frequency, last reading, and prompt text
-- First-person `WASD` now behaves Doom-style, moving relative to the viewing heading
+- First-person mode now uses a native 3D player body with yaw/pitch look and heading-relative movement
+- First-person terrain is a generated heightfield mesh, and traversal follows that terrain instead of a flat camera shim
 - The overhead hunt remains a fixed paper-map view, with the full mission area visible at once
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
