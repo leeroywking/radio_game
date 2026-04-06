@@ -3,6 +3,11 @@
 - what changed
 - why it changed
 
+## Live Build
+
+- Preview URL:
+- If no live preview is expected, explain why.
+
 ## Verification
 
 - [ ] `./run_demo.sh --quit`

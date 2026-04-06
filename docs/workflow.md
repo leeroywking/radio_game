@@ -46,7 +46,16 @@ timeout 3 ./run_demo.sh
 - Pushes to `master` or `main` trigger GitHub Actions CI.
 - CI runs the headless gameplay tests and export build.
 - If CI succeeds on `master` or `main`, GitHub updates the rolling release tagged `prototype-latest` with the latest Linux, Windows, and HTML5 artifacts.
-- The same successful push also deploys the HTML5 build to GitHub Pages.
+- Branch pushes also publish browser previews to GitHub Pages under `previews/<branch-name>/`.
+- The default branch build remains available at `https://leeroywking.github.io/radio_game/`.
+
+## PR review expectations
+
+- Feature, UI, and gameplay PRs should include a live preview URL in the PR body.
+- Expected URL pattern:
+  - default branch work: `https://leeroywking.github.io/radio_game/`
+  - feature branch work: `https://leeroywking.github.io/radio_game/previews/<branch-name>/`
+- Do not ask for review on browser-facing feature work until the preview URL is present and the branch preview has had a chance to publish.
 
 ## Current baseline
 

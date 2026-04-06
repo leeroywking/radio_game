@@ -17,6 +17,7 @@
 - Updated GitHub Actions CI to publish a rolling `prototype-latest` release with the latest build artifacts on pushes to `master` or `main`.
 - Changed the rolling `prototype-latest` publication from a prerelease to a normal release so it becomes the visible latest GitHub release after each successful push.
 - Added automatic GitHub Pages deployment for the HTML5 build and linked the live demo in the README.
+- Added branch-preview publication to GitHub Pages so feature branches can expose browser-playable builds before merge.
 - Fixed a DF receiver audio regression by making the DF player restart if playback stops on the active tuned source and by boosting the target conversation source gain.
 - Added automated DF audibility and DF restart regression cases to the headless testing agent.
 - Added a startup welcome modal that explains the mission and controls before the hunt begins.
@@ -24,6 +25,7 @@
 - Expanded the educational side of the band from three similar clips to five distinct clean training clips, including imported MP3 voice sources.
 - Added a regression case that verifies educational-audio variety and that one of the new clean educational stations is actually audible through the DF path.
 - Added `docs/curriculum-roadmap.md` to align real rabbit-hunt / ARDF skills with a staged game curriculum and roadmap, including rural navigation and manual map-plotting requirements.
+- Added a first-pass map board overlay so players can open a larger topo view while hunting and compare bearings against a dedicated board.
 
 ## 2026-04-05
 

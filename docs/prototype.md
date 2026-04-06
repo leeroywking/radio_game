@@ -18,6 +18,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Simulated voice reception instead of a numeric strength readout
 - Receiver scope feedback tied to the current audio state
 - Full-band waterfall display across the scannable range
+- Toggleable map board overlay for a larger topographic review view
 - Independent DF and scanner audio volume controls
 - Per-source stereo routing controls
 - Aim-quality feedback
@@ -79,6 +80,7 @@ The stated task for the player is:
 - `R`: reset the exercise
 - `C`: toggle clean monitor
 - `F`: trigger scanner sweep or rescan
+- `M`: open or close the map board
 
 ## Local launch
 
