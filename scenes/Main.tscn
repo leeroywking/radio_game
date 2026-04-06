@@ -63,7 +63,7 @@ text = "Start Hunt"
 margin_left = 16.0
 margin_top = 16.0
 margin_right = 370.0
-margin_bottom = 710.0
+margin_bottom = 744.0
 
 [node name="Title" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
@@ -98,53 +98,45 @@ text = "Waterfall"
 margin_left = 16.0
 margin_top = 328.0
 margin_right = 338.0
-margin_bottom = 430.0
+margin_bottom = 414.0
 expand = true
 stretch_mode = 6
 
 [node name="WaterfallScale" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 432.0
+margin_top = 418.0
 margin_right = 338.0
-margin_bottom = 452.0
+margin_bottom = 438.0
 text = "144        145        146        147        148 MHz"
 align = 1
 
-[node name="Instructions" type="Label" parent="HUD/Root/Panel"]
-margin_left = 16.0
-margin_top = 638.0
-margin_right = 336.0
-margin_bottom = 670.0
-text = "WASD move. Mouse aim. Tune DF, capture with Space, place fix with click. F scan. C clean monitor."
-autowrap = true
-
 [node name="AudioLabel" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 458.0
+margin_top = 446.0
 margin_right = 130.0
-margin_bottom = 478.0
+margin_bottom = 466.0
 text = "DF Tuning"
 
 [node name="DFFrequencyValue" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 480.0
+margin_top = 468.0
 margin_right = 130.0
-margin_bottom = 500.0
+margin_bottom = 488.0
 text = "145.000 MHz"
 
 [node name="DFFrequencyInput" type="LineEdit" parent="HUD/Root/Panel"]
 margin_left = 142.0
-margin_top = 476.0
+margin_top = 464.0
 margin_right = 336.0
-margin_bottom = 500.0
+margin_bottom = 488.0
 text = "145.000"
 placeholder_text = "145.000"
 
 [node name="DFFrequencySlider" type="HSlider" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 506.0
+margin_top = 494.0
 margin_right = 336.0
-margin_bottom = 522.0
+margin_bottom = 510.0
 min_value = 144.0
 max_value = 148.0
 step = 0.005
@@ -152,45 +144,45 @@ value = 145.0
 
 [node name="CleanMonitor" type="CheckBox" parent="HUD/Root/Panel"]
 margin_left = 228.0
-margin_top = 538.0
+margin_top = 522.0
 margin_right = 336.0
-margin_bottom = 560.0
+margin_bottom = 544.0
 text = "Clean"
 
 [node name="ScannerButton" type="Button" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 538.0
+margin_top = 522.0
 margin_right = 118.0
-margin_bottom = 562.0
+margin_bottom = 546.0
 text = "Start Scan"
 
 [node name="ScannerUnlockButton" type="Button" parent="HUD/Root/Panel"]
 margin_left = 128.0
-margin_top = 538.0
+margin_top = 522.0
 margin_right = 236.0
-margin_bottom = 562.0
+margin_bottom = 546.0
 text = "Unlock"
 
 [node name="DFVolumeLabel" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 570.0
+margin_top = 554.0
 margin_right = 122.0
-margin_bottom = 590.0
+margin_bottom = 574.0
 text = "DF Vol"
 
 [node name="DFVolumeValue" type="Label" parent="HUD/Root/Panel"]
 margin_left = 286.0
-margin_top = 570.0
+margin_top = 554.0
 margin_right = 334.0
-margin_bottom = 590.0
+margin_bottom = 574.0
 text = "85%"
 align = 2
 
 [node name="DFVolumeSlider" type="HSlider" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 592.0
+margin_top = 576.0
 margin_right = 336.0
-margin_bottom = 606.0
+margin_bottom = 590.0
 min_value = 0.0
 max_value = 100.0
 step = 1.0
@@ -198,39 +190,47 @@ value = 85.0
 
 [node name="ScannerVolumeLabel" type="Label" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 614.0
+margin_top = 596.0
 margin_right = 144.0
-margin_bottom = 634.0
+margin_bottom = 616.0
 text = "Scan Vol"
 
 [node name="ScannerVolumeValue" type="Label" parent="HUD/Root/Panel"]
 margin_left = 286.0
-margin_top = 614.0
+margin_top = 596.0
 margin_right = 334.0
-margin_bottom = 634.0
+margin_bottom = 616.0
 text = "70%"
 align = 2
 
 [node name="ScannerVolumeSlider" type="HSlider" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 636.0
+margin_top = 618.0
 margin_right = 336.0
-margin_bottom = 650.0
+margin_bottom = 632.0
 min_value = 0.0
 max_value = 100.0
 step = 1.0
 value = 70.0
 
+[node name="Instructions" type="Label" parent="HUD/Root/Panel"]
+margin_left = 16.0
+margin_top = 640.0
+margin_right = 336.0
+margin_bottom = 664.0
+text = "WASD move, mouse aim, tune DF, press Space for bearings, click to place a fix. F scans. C toggles clean monitor."
+autowrap = true
+
 [node name="SubmitButton" type="Button" parent="HUD/Root/Panel"]
 margin_left = 16.0
-margin_top = 682.0
+margin_top = 700.0
 margin_right = 110.0
-margin_bottom = 704.0
+margin_bottom = 724.0
 text = "Submit"
 
 [node name="ResetButton" type="Button" parent="HUD/Root/Panel"]
 margin_left = 120.0
-margin_top = 682.0
+margin_top = 700.0
 margin_right = 214.0
-margin_bottom = 704.0
+margin_bottom = 724.0
 text = "Reset"

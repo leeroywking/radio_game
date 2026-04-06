@@ -118,9 +118,11 @@ var scanner_profile = {
 var testing_aim_override_enabled := false
 var testing_aim_direction := Vector2.RIGHT
 
+onready var panel := $HUD/Root/Panel
 onready var status_label := $HUD/Root/Panel/Status
 onready var welcome_modal := $HUD/Root/WelcomeModal
 onready var welcome_button := $HUD/Root/WelcomeModal/WelcomePanel/WelcomeButton
+onready var instructions_label := $HUD/Root/Panel/Instructions
 onready var submit_button := $HUD/Root/Panel/SubmitButton
 onready var reset_button := $HUD/Root/Panel/ResetButton
 onready var clean_monitor_checkbox := $HUD/Root/Panel/CleanMonitor
@@ -1136,7 +1138,8 @@ func testing_snapshot() -> Dictionary:
 		"df_has_stream": df_voice_player != null and df_voice_player.stream != null,
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
 		"broadcasts": testing_get_broadcasts(),
-		"waterfall_summary": waterfall_summary
+		"waterfall_summary": waterfall_summary,
+		"hud_layout_summary": testing_get_hud_layout_summary()
 	}
 
 
@@ -1166,6 +1169,33 @@ func testing_get_waterfall_summary() -> Dictionary:
 		"average_intensity": avg_intensity,
 		"bright_bins": bright_bins,
 		"has_texture": waterfall_texture != null and waterfall_display != null and waterfall_display.texture != null
+	}
+
+
+func testing_get_hud_layout_summary() -> Dictionary:
+	var instruction_top = 0.0
+	var instruction_bottom = 0.0
+	var scanner_slider_bottom = 0.0
+	var submit_top = 0.0
+	var panel_bottom = 0.0
+	if instructions_label != null:
+		instruction_top = instructions_label.rect_position.y
+		instruction_bottom = instruction_top + instructions_label.rect_size.y
+	if scanner_volume_slider != null:
+		scanner_slider_bottom = scanner_volume_slider.rect_position.y + scanner_volume_slider.rect_size.y
+	if submit_button != null:
+		submit_top = submit_button.rect_position.y
+	if panel != null:
+		panel_bottom = panel.rect_size.y
+	return {
+		"instructions_top": instruction_top,
+		"instructions_bottom": instruction_bottom,
+		"scanner_slider_bottom": scanner_slider_bottom,
+		"submit_top": submit_top,
+		"panel_bottom": panel_bottom,
+		"instructions_clear_slider": instruction_top >= scanner_slider_bottom + 6.0,
+		"instructions_clear_buttons": instruction_bottom <= submit_top - 6.0,
+		"buttons_within_panel": submit_button != null and (submit_button.rect_position.y + submit_button.rect_size.y) <= panel_bottom - 4.0
 	}
 
 

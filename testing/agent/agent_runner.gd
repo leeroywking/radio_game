@@ -42,6 +42,7 @@ func _run() -> void:
 
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
+		yield(_run_hud_layout_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
@@ -100,6 +101,21 @@ func _run_welcome_modal_case() -> Dictionary:
 			"initially_visible": initially_visible,
 			"dismissed": dismissed
 		}
+	}
+
+
+func _run_hud_layout_case() -> Dictionary:
+	yield(_wait_seconds(0.01), "timeout")
+	var snapshot = game.testing_snapshot()
+	var hud = snapshot.get("hud_layout_summary", {})
+	var clear_slider = bool(hud.get("instructions_clear_slider", false))
+	var clear_buttons = bool(hud.get("instructions_clear_buttons", false))
+	var buttons_within_panel = bool(hud.get("buttons_within_panel", false))
+	return {
+		"name": "hud_layout",
+		"pass": clear_slider and clear_buttons and buttons_within_panel,
+		"warning": false,
+		"details": hud
 	}
 
 
