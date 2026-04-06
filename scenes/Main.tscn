@@ -41,7 +41,7 @@ margin_left = 24.0
 margin_top = 58.0
 margin_right = 516.0
 margin_bottom = 250.0
-text = "Mission: find the real conversation and ignore the educational content.\n\nHow to play:\n- Move with WASD and point the DF antenna with the mouse.\n- Tune the DF receiver by typing a frequency, dragging the slider, or clicking the waterfall.\n- Listen for the clearest copy on the real conversation while using the scanner as a search tool.\n- Press Space from two or more locations to capture bearings.\n- Click the map to place your estimated fix, then press Submit.\n\nHelpful controls:\n- F starts the scanner\n- Unlock drops the current scanner lock\n- C toggles clean monitor"
+text = "Mission: find the real conversation and ignore the educational content.\n\nHow to play:\n- Move with WASD and point the DF antenna with the mouse.\n- Tune the DF receiver by typing a frequency, dragging the slider, or clicking the waterfall.\n- Listen for the clearest copy on the real conversation while using the scanner as a search tool.\n- Press Space from two or more locations to capture bearings.\n- Click the map to place your estimated fix, then press Submit.\n\nHelpful controls:\n- F starts the scanner\n- Unlock drops the current scanner lock\n- C toggles clean monitor\n- T toggles the attenuator for close-in recovery"
 autowrap = true
 
 [node name="WelcomeHint" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
@@ -131,6 +131,13 @@ margin_right = 336.0
 margin_bottom = 488.0
 text = "145.000"
 placeholder_text = "145.000"
+
+[node name="AttenuatorButton" type="Button" parent="HUD/Root/Panel"]
+margin_left = 228.0
+margin_top = 464.0
+margin_right = 336.0
+margin_bottom = 488.0
+text = "Atten Off"
 
 [node name="DFFrequencySlider" type="HSlider" parent="HUD/Root/Panel"]
 margin_left = 16.0
@@ -225,7 +232,7 @@ margin_left = 16.0
 margin_top = 640.0
 margin_right = 336.0
 margin_bottom = 664.0
-text = "WASD move, mouse aim, tune DF, press Space for bearings, click to place a fix. F scans. M opens the map board."
+text = "WASD move, mouse aim, tune DF, press Space for bearings, click to place a fix. F scans. T attenuates. M opens the map board."
 autowrap = true
 
 [node name="SubmitButton" type="Button" parent="HUD/Root/Panel"]

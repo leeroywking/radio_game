@@ -23,6 +23,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Per-source stereo routing controls
 - Aim-quality feedback
 - Bearing capture from multiple positions
+- Attenuator toggle for close-in recovery work near the target
 - Estimated fix placement
 - Submission and scoring
 

@@ -19,6 +19,7 @@ The current build includes:
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - Bearing capture, fix placement, and scoring
+- A toggleable attenuator for close-in recovery so the final approach does not behave like simple long-range tracking
 - A headless gameplay testing agent with comparison against the previous run
 
 ## Key learnings

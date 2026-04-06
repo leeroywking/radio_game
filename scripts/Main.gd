@@ -7,6 +7,7 @@ const PLAYER_RADIUS := 10.0
 const BEARING_LENGTH := 2000.0
 const MAX_DISTANCE := 900.0
 const OVERLOAD_DISTANCE := 70.0
+const ATTENUATOR_CLOSE_DISTANCE := 160.0
 const SCOPE_RECT := Rect2(Vector2(32, 204), Vector2(322, 72))
 const WATERFALL_RECT := Rect2(Vector2(32, 324), Vector2(322, 92))
 const WATERFALL_LABEL_HEIGHT := 18.0
@@ -103,6 +104,7 @@ var current_df_broadcast_id := ""
 var current_scanner_broadcast_id := ""
 
 var clean_monitor_enabled := false
+var attenuator_enabled := false
 var map_board_visible := false
 var df_frequency := 145.000
 var df_volume := 0.85
@@ -154,6 +156,7 @@ onready var map_board_button := $HUD/Root/Panel/MapBoardButton
 onready var df_frequency_slider := $HUD/Root/Panel/DFFrequencySlider
 onready var df_frequency_value := $HUD/Root/Panel/DFFrequencyValue
 onready var df_frequency_input := $HUD/Root/Panel/DFFrequencyInput
+onready var attenuator_button := $HUD/Root/Panel/AttenuatorButton
 onready var df_volume_slider := $HUD/Root/Panel/DFVolumeSlider
 onready var scanner_volume_slider := $HUD/Root/Panel/ScannerVolumeSlider
 onready var df_volume_value := $HUD/Root/Panel/DFVolumeValue
@@ -177,6 +180,7 @@ func _ready() -> void:
 	df_frequency_slider.connect("value_changed", self, "_on_df_frequency_changed")
 	df_frequency_input.connect("text_entered", self, "_on_df_frequency_text_entered")
 	df_frequency_input.connect("focus_exited", self, "_on_df_frequency_focus_exited")
+	attenuator_button.connect("pressed", self, "_toggle_attenuator")
 	df_volume_slider.connect("value_changed", self, "_on_df_volume_changed")
 	scanner_volume_slider.connect("value_changed", self, "_on_scanner_volume_changed")
 	clean_monitor_checkbox.pressed = clean_monitor_enabled
@@ -220,7 +224,7 @@ func _process(delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if welcome_modal != null and welcome_modal.visible:
-		if event.is_action_pressed("submit_fix") or event.is_action_pressed("capture_bearing") or event.is_action_pressed("toggle_scanner") or event.is_action_pressed("reset_hunt") or event.is_action_pressed("toggle_clean_monitor"):
+		if event.is_action_pressed("submit_fix") or event.is_action_pressed("capture_bearing") or event.is_action_pressed("toggle_scanner") or event.is_action_pressed("reset_hunt") or event.is_action_pressed("toggle_clean_monitor") or event.is_action_pressed("toggle_attenuator"):
 			_dismiss_welcome_modal()
 			get_tree().set_input_as_handled()
 			return
@@ -232,6 +236,8 @@ func _input(event: InputEvent) -> void:
 		_reset_hunt()
 	elif event.is_action_pressed("toggle_clean_monitor"):
 		_toggle_clean_monitor()
+	elif event.is_action_pressed("toggle_attenuator"):
+		_toggle_attenuator()
 	elif event.is_action_pressed("toggle_scanner"):
 		_trigger_scanner()
 	elif event.is_action_pressed("toggle_map_board"):
@@ -412,10 +418,13 @@ func _reset_hunt() -> void:
 	scanner_step_index = 0
 	scanner_lock_strength = 0.0
 	current_scanner_broadcast_id = ""
+	attenuator_enabled = false
 	waterfall_rows.clear()
 	player_position = Vector2(520, 560)
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
+	if attenuator_button != null:
+		attenuator_button.text = "Atten Off"
 	_sync_overlay_visibility()
 
 
@@ -423,6 +432,9 @@ func _update_status() -> void:
 	var fix_text = "No fix marker."
 	if fix_position != null:
 		fix_text = "Fix marker placed."
+	var attenuator_text = "Atten off."
+	if attenuator_enabled:
+		attenuator_text = "Atten on."
 	var scanner_text = "Scanner idle."
 	if scanner_profile["state"] == "sweeping":
 		scanner_text = "Scanner sweeping."
@@ -431,6 +443,7 @@ func _update_status() -> void:
 	var lines := [
 		"Mission: find the real conversation and ignore the educational content.",
 		"DF: %.3f MHz" % df_frequency,
+		attenuator_text,
 		scanner_text,
 		"Bearings: %d" % bearings.size(),
 		fix_text
@@ -527,6 +540,13 @@ func _toggle_clean_monitor() -> void:
 	if clean_monitor_enabled:
 		monitor_mode = "clean"
 	result_text = "Monitor mode: %s." % monitor_mode
+
+
+func _toggle_attenuator() -> void:
+	attenuator_enabled = not attenuator_enabled
+	if attenuator_button != null:
+		attenuator_button.text = "Atten On" if attenuator_enabled else "Atten Off"
+	result_text = "Attenuator %s." % ("enabled" if attenuator_enabled else "disabled")
 
 
 func _on_clean_monitor_toggled(pressed: bool) -> void:
@@ -685,10 +705,18 @@ func _get_df_profile() -> Dictionary:
 	voice_level = smoothed_voice_level
 	noise_level = smoothed_noise_level
 	var state = "tracking"
-	if signal["distance"] < OVERLOAD_DISTANCE:
+	if signal["distance"] < OVERLOAD_DISTANCE and not attenuator_enabled:
 		state = "overload risk"
 		voice_level = clamp(voice_level * 0.55, 0.0, 0.7)
 		noise_level = 1.0
+	elif attenuator_enabled and signal["distance"] < ATTENUATOR_CLOSE_DISTANCE:
+		state = "attenuated tracking"
+		voice_level = clamp(signal["close_voice_level"], 0.0, 1.0)
+		noise_level = clamp(signal["close_noise_level"], 0.0, 0.75)
+	elif attenuator_enabled:
+		state = "attenuator"
+		voice_level = clamp(voice_level * 0.18, 0.0, 0.25)
+		noise_level = clamp(0.08 + noise_level * 0.18, 0.0, 0.32)
 	if clean_monitor_enabled:
 		state = "clean monitor"
 		voice_level = clamp(0.35 + clarity_base * 0.65, 0.0, 1.0)
@@ -732,6 +760,10 @@ func _compute_df_signal(broadcast: Dictionary) -> Dictionary:
 	var alignment_gate = clamp((direction_alignment - 0.84) / 0.16, 0.0, 1.0)
 	var distance_gate = clamp((distance_factor - 0.08) / 0.92, 0.0, 1.0)
 	var voice_level = clamp(pow(alignment_gate, 2.2) * pow(distance_gate, 0.78) * analog_variation, 0.0, 1.0)
+	var close_distance_ratio = clamp(1.0 - (distance / ATTENUATOR_CLOSE_DISTANCE), 0.0, 1.0)
+	var close_alignment_gate = clamp((direction_alignment - 0.90) / 0.10, 0.0, 1.0)
+	var close_voice_level = clamp(pow(close_alignment_gate, 2.0) * pow(close_distance_ratio, 0.55), 0.0, 1.0)
+	var close_noise_level = clamp(0.34 - close_voice_level * 0.28 + (1.0 - close_alignment_gate) * 0.24, 0.04, 0.58)
 	var noise_floor = 0.08
 	if broadcast["type"] == "clean":
 		noise_floor = 0.0
@@ -763,6 +795,8 @@ func _compute_df_signal(broadcast: Dictionary) -> Dictionary:
 	return {
 		"voice_level": voice_level,
 		"noise_level": noise_level,
+		"close_voice_level": close_voice_level,
+		"close_noise_level": close_noise_level,
 		"clarity_base": clarity_base,
 		"quality": quality,
 		"distance": distance
@@ -1014,6 +1048,10 @@ func _audio_summary(reading: Dictionary) -> String:
 		return "off-channel"
 	if clean_monitor_enabled:
 		return "clean source"
+	if reading["state"] == "attenuated tracking":
+		return "close-in copy"
+	if reading["state"] == "attenuator":
+		return "attenuated"
 	if reading["state"] == "overload risk":
 		return "blown out"
 	if noise_level < 0.02 and voice_level > 0.88:
@@ -1205,6 +1243,10 @@ func testing_toggle_map_board() -> void:
 	_toggle_map_board()
 
 
+func testing_toggle_attenuator() -> void:
+	_toggle_attenuator()
+
+
 func testing_set_clean_monitor(enabled: bool) -> void:
 	clean_monitor_enabled = enabled
 	if clean_monitor_checkbox != null:
@@ -1249,6 +1291,8 @@ func testing_snapshot() -> Dictionary:
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
 		"map_board_visible": map_board_visible,
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
+		"attenuator_enabled": attenuator_enabled,
+		"attenuator_button_text": attenuator_button.text if attenuator_button != null else "",
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,
 		"hud_layout_summary": testing_get_hud_layout_summary()

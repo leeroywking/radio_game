@@ -48,6 +48,7 @@ func _run() -> void:
 		yield(_run_hud_layout_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
+		yield(_run_attenuator_close_in_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
 		yield(_run_df_audio_consistency_case(), "completed"),
 		yield(_run_df_audio_restart_case(), "completed"),
@@ -253,6 +254,35 @@ func _run_df_numeric_entry_case() -> Dictionary:
 		"details": {
 			"df_frequency": snapshot["df_frequency"],
 			"input_text": game.df_frequency_input.text
+		}
+	}
+
+
+func _run_attenuator_close_in_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-40, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.2), "timeout")
+	var before = game.testing_snapshot()
+	game.testing_toggle_attenuator()
+	yield(_wait_seconds(0.2), "timeout")
+	var after = game.testing_snapshot()
+	var before_state = String(before["receiver_profile"].get("state", ""))
+	var after_state = String(after["receiver_profile"].get("state", ""))
+	var button_text = String(after.get("attenuator_button_text", ""))
+	return {
+		"name": "attenuator_close_in",
+		"pass": bool(after.get("attenuator_enabled", false)) and button_text == "Atten On" and before_state == "overload risk" and after_state == "attenuated tracking" and float(after["receiver_profile"].get("voice_level", 0.0)) > 0.10,
+		"warning": false,
+		"details": {
+			"before_state": before_state,
+			"after_state": after_state,
+			"button_text": button_text,
+			"voice_level": after["receiver_profile"].get("voice_level", 0.0)
 		}
 	}
 
