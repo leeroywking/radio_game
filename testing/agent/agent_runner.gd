@@ -49,6 +49,7 @@ func _run() -> void:
 		yield(_run_hud_layout_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
+		yield(_run_bearing_capture_feedback_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
 		yield(_run_df_audio_consistency_case(), "completed"),
 		yield(_run_df_audio_restart_case(), "completed"),
@@ -280,6 +281,34 @@ func _run_df_numeric_entry_case() -> Dictionary:
 		"details": {
 			"df_frequency": snapshot["df_frequency"],
 			"input_text": game.df_frequency_input.text
+		}
+	}
+
+
+func _run_bearing_capture_feedback_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-160, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.15), "timeout")
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var last_bearing = snapshot.get("last_bearing", {})
+	var advice = String(last_bearing.get("advice", ""))
+	var azimuth_deg = float(last_bearing.get("azimuth_deg", -1.0))
+	return {
+		"name": "bearing_capture_feedback",
+		"pass": advice != "" and azimuth_deg >= 0.0 and String(snapshot.get("result_text", "")).find("Bearing ") == 0,
+		"warning": false,
+		"details": {
+			"quality": last_bearing.get("quality", ""),
+			"azimuth_deg": azimuth_deg,
+			"advice": advice,
+			"result_text": snapshot.get("result_text", "")
 		}
 	}
 

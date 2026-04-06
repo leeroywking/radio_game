@@ -454,16 +454,25 @@ func _capture_bearing() -> void:
 	if reading["broadcast_id"] == "":
 		result_text = "Tune the DF receiver onto a broadcast before taking a bearing."
 		return
+	var aim_vector = _get_aim_vector()
+	var azimuth_deg = _bearing_degrees(aim_vector)
+	var previous_separation = 0.0
+	if not bearings.empty():
+		previous_separation = player_position.distance_to(bearings[bearings.size() - 1]["origin"])
+	var advice = _bearing_capture_advice(String(reading["quality"]), previous_separation)
 	bearings.append({
 		"origin": player_position,
-		"direction": _get_aim_vector(),
+		"direction": aim_vector,
 		"frequency": df_frequency,
 		"broadcast_id": reading["broadcast_id"],
-		"quality": reading["quality"]
+		"quality": reading["quality"],
+		"azimuth_deg": azimuth_deg,
+		"origin_separation": previous_separation,
+		"advice": advice
 	})
 	bearing_capture_audio_hold_timer = 0.35
 	bearing_capture_audio_hold_broadcast_id = reading["broadcast_id"]
-	result_text = "Bearing captured on %.3f MHz." % df_frequency
+	result_text = "Bearing %03d deg captured. %s" % [int(round(azimuth_deg)) % 360, advice]
 
 
 func _submit_fix() -> void:
@@ -510,6 +519,13 @@ func _update_status() -> void:
 	var fix_text = "No fix marker."
 	if fix_position != null:
 		fix_text = "Fix marker placed."
+	var last_bearing_text = "No bearing captured."
+	if not bearings.empty():
+		var last_bearing = bearings[bearings.size() - 1]
+		last_bearing_text = "Last bearing: %03d deg %s." % [
+			int(round(float(last_bearing.get("azimuth_deg", 0.0)))) % 360,
+			String(last_bearing.get("quality", "poor"))
+		]
 	var scanner_text = "Scanner idle."
 	if scanner_profile["state"] == "sweeping":
 		scanner_text = "Scanner sweeping."
@@ -520,6 +536,7 @@ func _update_status() -> void:
 		"DF: %.3f MHz" % df_frequency,
 		scanner_text,
 		"Bearings: %d" % bearings.size(),
+		last_bearing_text,
 		fix_text
 	]
 	if result_text != "":
@@ -629,14 +646,6 @@ func _map_board_bearing_summary() -> String:
 			]
 		)
 	return "\n".join(lines)
-
-
-func _bearing_degrees(direction: Vector2) -> float:
-	var normalized = direction.normalized()
-	var degrees_value = rad2deg(atan2(normalized.x, -normalized.y))
-	if degrees_value < 0.0:
-		degrees_value += 360.0
-	return degrees_value
 
 
 func _map_board_font():
@@ -978,6 +987,29 @@ func _score_text(error_distance: float) -> String:
 	elif error_distance < 120.0:
 		return "Usable, but your bearings need refinement."
 	return "Poor fix. Take bearings from more separated positions."
+
+
+func _bearing_capture_advice(quality: String, previous_separation: float) -> String:
+	var quality_text = quality.capitalize()
+	if quality == "excellent":
+		if previous_separation >= 140.0:
+			return "%s bearing. Good spacing for a cross-fix." % quality_text
+		return "%s bearing. Keep it, then move farther before the next shot." % quality_text
+	if quality == "good":
+		if previous_separation >= 140.0:
+			return "%s bearing. Plot it and look for an intersecting line." % quality_text
+		return "%s bearing. Usable, but widen your next position." % quality_text
+	if quality == "usable":
+		return "%s bearing. Plot it lightly and retake if you can improve aim." % quality_text
+	return "%s bearing. Retake before trusting this line." % quality_text
+
+
+func _bearing_degrees(direction: Vector2) -> float:
+	var normalized = direction.normalized()
+	var degrees_value = rad2deg(atan2(normalized.x, -normalized.y))
+	if degrees_value < 0.0:
+		degrees_value += 360.0
+	return degrees_value
 
 
 func _update_audio_mix(reading: Dictionary) -> void:
@@ -1391,6 +1423,9 @@ func testing_find_broadcast(broadcast_id: String) -> Dictionary:
 func testing_snapshot() -> Dictionary:
 	var waterfall_summary = testing_get_waterfall_summary()
 	var map_board_summary = testing_get_map_board_summary()
+	var last_bearing = {}
+	if not bearings.empty():
+		last_bearing = bearings[bearings.size() - 1].duplicate(true)
 	return {
 		"player_position": player_position,
 		"df_frequency": df_frequency,
@@ -1412,6 +1447,7 @@ func testing_snapshot() -> Dictionary:
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
 		"map_board_visible": map_board_visible,
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
+		"last_bearing": last_bearing,
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,
 		"map_board_summary": map_board_summary,
