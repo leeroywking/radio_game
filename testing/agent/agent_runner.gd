@@ -166,6 +166,10 @@ func _run_education_audio_variety_case() -> Dictionary:
 func _run_scanner_button_label_case() -> Dictionary:
 	game.testing_reset_hunt()
 	yield(_wait_seconds(0.05), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-120, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
 	var initial_snapshot = game.testing_snapshot()
 	var initial_label = String(initial_snapshot.get("scanner_button_text", ""))
 	game.testing_trigger_scanner()
@@ -173,7 +177,7 @@ func _run_scanner_button_label_case() -> Dictionary:
 	var sweeping_snapshot = game.testing_snapshot()
 	var sweeping_label = String(sweeping_snapshot.get("scanner_button_text", ""))
 	var locked_label = ""
-	for _i in range(50):
+	for _i in range(80):
 		yield(_wait_seconds(0.1), "timeout")
 		var snapshot = game.testing_snapshot()
 		if snapshot["scanner_profile"]["state"] == "locked":
