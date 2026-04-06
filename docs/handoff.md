@@ -50,6 +50,9 @@ The current build includes:
 7. Educational content should not sound too uniform.
    The original three clean training clips became recognizable too quickly, so the prototype now mixes in additional clean imported voice sources to make decoys less obvious.
 
+8. PR state needs to be explicit in handoffs.
+   Saying that work is "up" is not enough. Future agents should state whether the PR is open or already merged, with the PR number and URL.
+
 ## Current files to know
 
 - `scripts/Main.gd`

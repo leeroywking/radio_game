@@ -17,6 +17,7 @@ Required policy:
 - Start new work on a branch unless the user explicitly asks for direct default-branch changes.
 - Open a PR before merging whenever practical.
 - Treat direct `master` or `main` commits as exceptions for urgent CI or release repair only.
+- A branch is not considered handoff-ready until there is a PR URL or a documented blocker.
 
 ## Commit style
 
@@ -56,6 +57,7 @@ timeout 3 ./run_demo.sh
   - default branch work: `https://leeroywking.github.io/radio_game/`
   - feature branch work: `https://leeroywking.github.io/radio_game/previews/<branch-name>/`
 - Do not ask for review on browser-facing feature work until the preview URL is present and the branch preview has had a chance to publish.
+- In handoff messages, always spell out the PR state explicitly as `open` or `merged`, together with the PR number and URL.
 
 ## Current baseline
 
