@@ -24,6 +24,7 @@ The current build includes:
 - A tactical inset map in first-person mode that shows player position and captured LOBs
 - First-person reading overlays that show live heading, DF frequency, last reading, and prompt text
 - First-person `WASD` now behaves Doom-style, moving relative to the viewing heading
+- First-person traversal now rides over a generated terrain mesh sampled from the Washington hillshade instead of a flat ground plane
 - The overhead hunt remains a fixed paper-map view, with the full mission area visible at once
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
@@ -126,6 +127,7 @@ The current build includes:
 - The map board is still not a full notebook workflow, but it is no longer just a zoomed view. It now supports direct fix placement on the board and shows bearings with azimuth notes and uncertainty wedges.
 - Reset now also resets DF tuning so a new run starts from a clean teaching state instead of inheriting the prior frequency.
 - First-person mode is a vertical slice, not a full replacement for the top-down workflow yet. It shares the simulation, but the environment dressing is intentionally minimal.
+- The 3D world now has real continuous height variation, but it still uses generated terrain and simple props rather than authored trails, roads, or collision-heavy environmental detail.
 - The world is substantially larger now, so some older test assumptions about uniformly strong station visibility had to be relaxed.
 
 ## Recommended next steps

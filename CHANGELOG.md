@@ -14,8 +14,11 @@
 - Changed first-person controls to Doom-style movement, with `WASD` moving relative to heading instead of map axes.
 - Restored the top-down hunt view to a fixed paper-map presentation so the whole mission area stays visible at once.
 - Added broader terrain cues to the first-person view using the Washington hillshade as a source for hills, ridges, and valleys.
+- Replaced the fake first-person hill props with a sampled terrain mesh built from the Washington hillshade so first-person traversal now follows continuous elevation changes.
+- Added first-person rock/tree placement that snaps to the generated terrain height instead of floating above a flat plane.
 - Restored practical broadcaster spacing and audio range after the oversized-world experiment made the band too sparse from the player start.
 - Added a regression case that requires all broadcasters to remain on the visible paper map after reset.
+- Added a regression case that verifies the first-person terrain mesh exists and that camera height changes across the map.
 - Fixed DF/scanner shared-broadcast playback so both receivers stay sample-aligned on the same conversation.
 - Added a deterministic regression test for DF/scanner shared-broadcast sync.
 - Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.
