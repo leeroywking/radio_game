@@ -13,6 +13,8 @@ const WATERFALL_LABEL_HEIGHT := 18.0
 const MAP_BOARD_RECT := Rect2(Vector2(392, 92), Vector2(840, 556))
 const MAP_BOARD_RING_CENTER := Vector2(194, 218)
 const MAP_BOARD_RING_RADIUS := 92.0
+const COMPASS_CENTER := Vector2(1160, 618)
+const COMPASS_RADIUS := 66.0
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
 const SCANNER_MIN_FREQ := 144.000
@@ -263,6 +265,7 @@ func _draw() -> void:
 	_draw_bearings()
 	_draw_fix_marker()
 	_draw_player()
+	_draw_compass()
 	_draw_scope()
 	_draw_waterfall()
 	if map_board_visible:
@@ -292,6 +295,44 @@ func _draw_player() -> void:
 	draw_arc(player_position, 20.0, aim_vector.angle() - 0.45, aim_vector.angle() + 0.45, 16, Color(0.98, 0.91, 0.46, 0.4), 2.0)
 
 
+func _draw_compass() -> void:
+	var font = _ui_font()
+	draw_circle(COMPASS_CENTER, COMPASS_RADIUS + 10.0, Color(0.03, 0.05, 0.07, 0.88))
+	draw_circle(COMPASS_CENTER, COMPASS_RADIUS, Color(0.10, 0.13, 0.16, 0.92))
+	draw_arc(COMPASS_CENTER, COMPASS_RADIUS, 0.0, TAU, 72, Color(0.82, 0.88, 0.93, 0.48), 2.0)
+	for marker in range(0, 360, 10):
+		var radians = deg2rad(marker - 90.0)
+		var outer = COMPASS_CENTER + Vector2(cos(radians), sin(radians)) * COMPASS_RADIUS
+		var inner_length = COMPASS_RADIUS - (12.0 if marker % 30 == 0 else 6.0)
+		var inner = COMPASS_CENTER + Vector2(cos(radians), sin(radians)) * inner_length
+		draw_line(inner, outer, Color(0.80, 0.88, 0.94, 0.44), 1.5)
+	for label in [0, 90, 180, 270]:
+		if font == null:
+			continue
+		var radians = deg2rad(label - 90.0)
+		var pos = COMPASS_CENTER + Vector2(cos(radians), sin(radians)) * (COMPASS_RADIUS - 20.0)
+		var text = "N"
+		if label == 90:
+			text = "E"
+		elif label == 180:
+			text = "S"
+		elif label == 270:
+			text = "W"
+		draw_string(font, pos + Vector2(-5, 5), text, Color(0.92, 0.95, 0.98))
+	var aim_vector = _get_aim_vector()
+	var heading_deg = _bearing_degrees(aim_vector)
+	var heading_angle = deg2rad(heading_deg - 90.0)
+	var heading_tip = COMPASS_CENTER + Vector2(cos(heading_angle), sin(heading_angle)) * (COMPASS_RADIUS - 10.0)
+	var heading_back = COMPASS_CENTER - Vector2(cos(heading_angle), sin(heading_angle)) * 18.0
+	draw_line(heading_back, heading_tip, Color(0.98, 0.91, 0.42), 3.0)
+	var north_tip = COMPASS_CENTER + Vector2(0, -COMPASS_RADIUS + 8.0)
+	draw_line(COMPASS_CENTER, north_tip, Color(0.92, 0.34, 0.28, 0.72), 2.0)
+	draw_circle(COMPASS_CENTER, 5.0, Color(0.95, 0.98, 1.0))
+	if font != null:
+		var heading_text = "Lensatic %03d deg" % (int(round(heading_deg)) % 360)
+		draw_string(font, COMPASS_CENTER + Vector2(-46, COMPASS_RADIUS + 30.0), heading_text, Color(0.95, 0.98, 1.0))
+
+
 func _draw_map_board() -> void:
 	draw_rect(Rect2(Vector2.ZERO, WORLD_SIZE), Color(0.04, 0.06, 0.08, 0.78))
 	draw_rect(MAP_BOARD_RECT.grow(6.0), Color(0.11, 0.11, 0.10, 0.94))
@@ -301,12 +342,18 @@ func _draw_map_board() -> void:
 	draw_rect(MAP_BOARD_RECT, Color(0.16, 0.12, 0.08, 0.9), false, 2.0)
 	_draw_map_board_grid()
 	_draw_map_board_reference_ring()
-	for bearing in bearings:
+	var font = _ui_font()
+	for index in range(bearings.size()):
+		var bearing = bearings[index]
 		var origin = _map_board_point(bearing["origin"])
 		var end_point = _map_board_point(bearing["origin"] + bearing["direction"] * BEARING_LENGTH)
 		_draw_bearing_wedge(origin, end_point, String(bearing.get("quality", "poor")))
 		draw_line(origin, end_point, Color(0.12, 0.62, 0.88, 0.82), 2.0)
-		draw_circle(origin, 4.0, Color(0.92, 0.97, 1.0))
+		draw_circle(origin, 5.0, Color(0.92, 0.97, 1.0))
+		draw_arc(origin, 10.0, 0.0, TAU, 18, Color(0.12, 0.62, 0.88, 0.48), 1.0)
+		if font != null:
+			var bearing_label = "B%d %03d" % [index + 1, int(round(float(bearing.get("azimuth_deg", 0.0)))) % 360]
+			draw_string(font, origin + Vector2(10, -8), bearing_label, Color(0.10, 0.24, 0.34))
 	var player_marker = _map_board_point(player_position)
 	draw_circle(player_marker, 7.0, Color(0.28, 0.78, 0.96))
 	if fix_position != null:
@@ -405,9 +452,17 @@ func _world_point_from_map_board(board_position: Vector2) -> Vector2:
 
 
 func _draw_bearings() -> void:
-	for bearing in bearings:
-		draw_circle(bearing["origin"], 4.0, Color(0.91, 0.95, 1.0))
-		draw_line(bearing["origin"], bearing["origin"] + bearing["direction"] * BEARING_LENGTH, Color(0.66, 0.9, 1.0, 0.7), 2.0)
+	var font = _ui_font()
+	for index in range(bearings.size()):
+		var bearing = bearings[index]
+		var origin = bearing["origin"]
+		var end_point = bearing["origin"] + bearing["direction"] * BEARING_LENGTH
+		draw_circle(origin, 5.0, Color(0.91, 0.95, 1.0))
+		draw_arc(origin, 11.0, 0.0, TAU, 18, Color(0.66, 0.9, 1.0, 0.35), 1.0)
+		draw_line(origin, end_point, Color(0.66, 0.9, 1.0, 0.78), 2.0)
+		if font != null:
+			var label = "B%d %03d" % [index + 1, int(round(float(bearing.get("azimuth_deg", 0.0)))) % 360]
+			draw_string(font, origin + Vector2(9, -10), label, Color(0.90, 0.96, 1.0))
 
 
 func _draw_fix_marker() -> void:
@@ -500,6 +555,7 @@ func _reset_hunt() -> void:
 	map_board_visible = false
 	smoothed_voice_level = 0.0
 	smoothed_noise_level = 1.0
+	df_frequency = 145.000
 	scanner_active = false
 	scanner_locked = false
 	scanner_locked_broadcast_id = ""
@@ -512,10 +568,14 @@ func _reset_hunt() -> void:
 	player_position = Vector2(520, 560)
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
+	if df_frequency_slider != null:
+		df_frequency_slider.value = df_frequency
+	_sync_control_labels()
 	_sync_overlay_visibility()
 
 
 func _update_status() -> void:
+	var training_step = _current_training_step()
 	var fix_text = "No fix marker."
 	if fix_position != null:
 		fix_text = "Fix marker placed."
@@ -532,7 +592,8 @@ func _update_status() -> void:
 	elif scanner_profile["state"] == "locked":
 		scanner_text = "Scanner locked."
 	var lines := [
-		"Mission: find the real conversation and ignore the educational content.",
+		"Purpose: identify target traffic, take bearings, and plot a fix.",
+		training_step["title"],
 		"DF: %.3f MHz" % df_frequency,
 		scanner_text,
 		"Bearings: %d" % bearings.size(),
@@ -542,6 +603,7 @@ func _update_status() -> void:
 	if result_text != "":
 		lines.append(result_text)
 	status_label.text = "\n".join(lines)
+	instructions_label.text = "%s\n%s" % [training_step["title"], training_step["detail"]]
 	if map_board_status_label != null:
 		map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s | Plot N-up" % [df_frequency, bearings.size(), fix_text]
 	if map_board_bearing_list != null:
@@ -1004,12 +1066,57 @@ func _bearing_capture_advice(quality: String, previous_separation: float) -> Str
 	return "%s bearing. Retake before trusting this line." % quality_text
 
 
+func _current_training_step() -> Dictionary:
+	var target_identified = receiver_profile["broadcast_id"] == TARGET_BROADCAST_ID or scanner_locked_broadcast_id == TARGET_BROADCAST_ID
+	if show_target:
+		return {
+			"id": "review_fix",
+			"title": "Step 5: Review the fix",
+			"detail": "Compare your lines with the revealed target, then reset for another run."
+		}
+	if not target_identified:
+		return {
+			"id": "identify_target",
+			"title": "Step 1: Identify the real conversation",
+			"detail": "Use the scanner, DF tuning, or waterfall. Ignore educational traffic."
+		}
+	if bearings.size() == 0:
+		return {
+			"id": "capture_first_bearing",
+			"title": "Step 2: Capture the first bearing",
+			"detail": "Aim for the clearest heading, then press Space to mark a line of bearing."
+		}
+	if bearings.size() == 1:
+		return {
+			"id": "capture_second_bearing",
+			"title": "Step 3: Move and take a second bearing",
+			"detail": "Walk to a new position before pressing Space again so the lines can cross."
+		}
+	if fix_position == null:
+		return {
+			"id": "plot_fix",
+			"title": "Step 4: Plot the fix on the map",
+			"detail": "Open the map board if needed, compare your marked lines, then click a fix point."
+		}
+	return {
+		"id": "submit_fix",
+		"title": "Step 5: Submit the fix",
+		"detail": "Press Submit to score the estimate and compare it to the hidden target."
+	}
+
+
 func _bearing_degrees(direction: Vector2) -> float:
 	var normalized = direction.normalized()
 	var degrees_value = rad2deg(atan2(normalized.x, -normalized.y))
 	if degrees_value < 0.0:
 		degrees_value += 360.0
 	return degrees_value
+
+
+func _ui_font():
+	if status_label != null:
+		return status_label.get_font("font")
+	return null
 
 
 func _update_audio_mix(reading: Dictionary) -> void:
@@ -1426,6 +1533,7 @@ func testing_snapshot() -> Dictionary:
 	var last_bearing = {}
 	if not bearings.empty():
 		last_bearing = bearings[bearings.size() - 1].duplicate(true)
+	var training_step = _current_training_step()
 	return {
 		"player_position": player_position,
 		"df_frequency": df_frequency,
@@ -1447,10 +1555,13 @@ func testing_snapshot() -> Dictionary:
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
 		"map_board_visible": map_board_visible,
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
+		"training_step": training_step.duplicate(true),
+		"compass_heading_deg": _bearing_degrees(_get_aim_vector()),
 		"last_bearing": last_bearing,
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,
 		"map_board_summary": map_board_summary,
+		"bearing_visual_summary": testing_get_bearing_visual_summary(),
 		"hud_layout_summary": testing_get_hud_layout_summary()
 	}
 
@@ -1523,6 +1634,17 @@ func testing_get_map_board_summary() -> Dictionary:
 		"has_bearing_list": map_board_bearing_list != null and map_board_bearing_list.text.length() > 0,
 		"has_status": map_board_status_label != null and map_board_status_label.text.length() > 0,
 		"has_fix": fix_position != null
+	}
+
+
+func testing_get_bearing_visual_summary() -> Dictionary:
+	var labels := []
+	for index in range(bearings.size()):
+		var bearing = bearings[index]
+		labels.append("B%d %03d" % [index + 1, int(round(float(bearing.get("azimuth_deg", 0.0)))) % 360])
+	return {
+		"count": bearings.size(),
+		"labels": labels
 	}
 
 

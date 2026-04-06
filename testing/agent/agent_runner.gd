@@ -44,6 +44,9 @@ func _run() -> void:
 		yield(_run_welcome_modal_case(), "completed"),
 		yield(_run_map_board_case(), "completed"),
 		yield(_run_map_board_plotting_case(), "completed"),
+		yield(_run_training_step_progression_case(), "completed"),
+		yield(_run_compass_heading_case(), "completed"),
+		yield(_run_bearing_visuals_case(), "completed"),
 		yield(_run_education_audio_variety_case(), "completed"),
 		yield(_run_scanner_button_label_case(), "completed"),
 		yield(_run_hud_layout_case(), "completed"),
@@ -156,6 +159,94 @@ func _run_map_board_plotting_case() -> Dictionary:
 		"pass": bool(snapshot.get("map_board_visible", false)) and bool(board.get("has_bearing_list", false)) and int(board.get("bearing_cards", 0)) >= 1 and int(board.get("wedge_count", 0)) >= 1 and bool(board.get("has_fix", false)),
 		"warning": false,
 		"details": board
+	}
+
+
+func _run_training_step_progression_case() -> Dictionary:
+	game.testing_reset_hunt()
+	var decoy = game.testing_find_broadcast("lesson_alpha")
+	game.testing_set_df_frequency(decoy["frequency"])
+	yield(_wait_seconds(0.1), "timeout")
+	var initial_snapshot = game.testing_snapshot()
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-180, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.2), "timeout")
+	var tuned_snapshot = game.testing_snapshot()
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.05), "timeout")
+	var first_bearing_snapshot = game.testing_snapshot()
+	game.testing_set_player_position(listen_position + Vector2(180, 120))
+	game.testing_set_aim_direction(target["position"] - (listen_position + Vector2(180, 120)))
+	yield(_wait_seconds(0.15), "timeout")
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.05), "timeout")
+	var second_bearing_snapshot = game.testing_snapshot()
+	game.testing_set_fix_position(target["position"] + Vector2(20, -10))
+	yield(_wait_seconds(0.05), "timeout")
+	var fix_snapshot = game.testing_snapshot()
+	var passed = String(initial_snapshot["training_step"]["id"]) == "identify_target" \
+		and String(tuned_snapshot["training_step"]["id"]) == "capture_first_bearing" \
+		and String(first_bearing_snapshot["training_step"]["id"]) == "capture_second_bearing" \
+		and String(second_bearing_snapshot["training_step"]["id"]) == "plot_fix" \
+		and String(fix_snapshot["training_step"]["id"]) == "submit_fix"
+	return {
+		"name": "training_step_progression",
+		"pass": passed,
+		"warning": false,
+		"details": {
+			"initial": initial_snapshot["training_step"],
+			"tuned": tuned_snapshot["training_step"],
+			"first_bearing": first_bearing_snapshot["training_step"],
+			"second_bearing": second_bearing_snapshot["training_step"],
+			"fix": fix_snapshot["training_step"]
+		}
+	}
+
+
+func _run_compass_heading_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	game.testing_set_aim_direction(Vector2.RIGHT)
+	yield(_wait_seconds(0.05), "timeout")
+	var east_snapshot = game.testing_snapshot()
+	game.testing_set_aim_direction(Vector2.UP)
+	yield(_wait_seconds(0.05), "timeout")
+	var north_snapshot = game.testing_snapshot()
+	return {
+		"name": "compass_heading",
+		"pass": abs(float(east_snapshot["compass_heading_deg"]) - 90.0) <= 1.0 and abs(float(north_snapshot["compass_heading_deg"]) - 0.0) <= 1.0,
+		"warning": false,
+		"details": {
+			"east_heading": east_snapshot["compass_heading_deg"],
+			"north_heading": north_snapshot["compass_heading_deg"]
+		}
+	}
+
+
+func _run_bearing_visuals_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-170, 30)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.15), "timeout")
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var visual_summary = snapshot.get("bearing_visual_summary", {})
+	return {
+		"name": "bearing_visuals",
+		"pass": int(visual_summary.get("count", 0)) >= 1 and visual_summary.get("labels", []).size() >= 1 and String(snapshot["last_bearing"].get("advice", "")).length() > 0,
+		"warning": false,
+		"details": {
+			"visual_summary": visual_summary,
+			"last_bearing": snapshot["last_bearing"]
+		}
 	}
 
 

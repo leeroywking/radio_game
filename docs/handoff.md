@@ -18,9 +18,12 @@ The current build includes:
 - A visible full-band waterfall rendered in the HUD
 - Waterfall energy driven by the live station list and player-relative strength
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
+- Step-by-step training prompts that update as the player progresses through identify, capture, plot, and submit
+- A visible lensatic-style compass overlay that continuously shows the current DF heading
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
 - Bearing capture now records azimuth and coaching text so players get explicit keep/retake guidance
+- Bearing shots are labeled directly on the map and map board so each line of bearing is tied to a shot location and angle
 - Bearing capture, fix placement, and scoring
 - A headless gameplay testing agent with comparison against the previous run
 
@@ -79,6 +82,9 @@ The current build includes:
 - Shared-broadcast sync coverage
   The headless testing agent also forces both receiver paths onto the same broadcast and verifies they remain time-aligned.
 
+- Training-and-visual guidance coverage
+  The headless testing agent now checks tutorial-step progression, live compass heading, and labeled bearing-visual summaries.
+
 - `.github/workflows/ci.yml`
   GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and publishes branch previews plus the default HTML5 build to GitHub Pages.
 
@@ -104,6 +110,7 @@ The current build includes:
 - Clicking inside the waterfall now tunes the DF frequency. The display energy is also derived from the live `broadcasts` list and distance-based station strength, so it tracks the current scenario instead of a generic fake band texture.
 - Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
 - The map board is still not a full notebook workflow, but it is no longer just a zoomed view. It now supports direct fix placement on the board and shows bearings with azimuth notes and uncertainty wedges.
+- Reset now also resets DF tuning so a new run starts from a clean teaching state instead of inheriting the prior frequency.
 
 ## Recommended next steps
 

@@ -32,6 +32,10 @@
 - Added a regression case that verifies the map board plotting aids appear and that a fix can be placed from the board view.
 - Bearing capture now stores azimuth and coaching text so the prototype can tell the player whether to keep or retake a line.
 - Added a regression case that verifies bearing capture feedback includes azimuth and instructional guidance.
+- Added step-by-step training prompts that advance from signal identification through bearing capture and fix submission.
+- Added a visible lensatic-style compass overlay that always shows the current DF heading.
+- Improved bearing plotting visuals so each shot is labeled on both the map and map board with its azimuth.
+- Added regression coverage for training-step progression, compass heading, and bearing-visual labeling.
 
 ## 2026-04-05
 
