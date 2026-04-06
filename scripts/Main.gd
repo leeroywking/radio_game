@@ -138,9 +138,11 @@ var scanner_profile = {
 var testing_aim_override_enabled := false
 var testing_aim_direction := Vector2.RIGHT
 
+onready var panel := $HUD/Root/Panel
 onready var status_label := $HUD/Root/Panel/Status
 onready var welcome_modal := $HUD/Root/WelcomeModal
 onready var welcome_button := $HUD/Root/WelcomeModal/WelcomePanel/WelcomeButton
+onready var instructions_label := $HUD/Root/Panel/Instructions
 onready var submit_button := $HUD/Root/Panel/SubmitButton
 onready var reset_button := $HUD/Root/Panel/ResetButton
 onready var clean_monitor_checkbox := $HUD/Root/Panel/CleanMonitor
@@ -817,15 +819,20 @@ func _update_audio_mix(reading: Dictionary) -> void:
 
 	var voice_level = reading["voice_level"]
 	var noise_level = reading["noise_level"]
+	var clarity_base = float(reading.get("clarity_base", voice_level))
 	var df_gain_db = _broadcast_gain_db(reading["broadcast_id"])
 	if reading["broadcast_id"] == "":
 		df_voice_player.volume_db = -80.0
 	elif clean_monitor_enabled:
-		df_voice_player.volume_db = _scaled_volume_db(lerp(-12.0, -1.5, voice_level) + df_gain_db, df_volume)
+		var clean_presence = clamp(max(voice_level, 0.4 + clarity_base * 0.6), 0.0, 1.0)
+		df_voice_player.volume_db = _scaled_volume_db(lerp(-8.5, -1.5, clean_presence) + df_gain_db, df_volume)
 	elif voice_level < 0.06:
-		df_voice_player.volume_db = _scaled_volume_db(-32.0 + df_gain_db, df_volume)
+		df_voice_player.volume_db = _scaled_volume_db(-20.0 + df_gain_db, df_volume)
 	else:
-		df_voice_player.volume_db = _scaled_volume_db(lerp(-16.0, -1.0, voice_level) + df_gain_db, df_volume)
+		var consistency_presence = clamp(max(clarity_base, voice_level * 0.7 + clarity_base * 0.3), 0.0, 1.0)
+		var consistency_penalty = clamp((noise_level - voice_level) * 1.8, 0.0, 1.0) * 1.5
+		var voice_target_db = lerp(-8.5, -2.5, consistency_presence) - consistency_penalty
+		df_voice_player.volume_db = _scaled_volume_db(voice_target_db + df_gain_db, df_volume)
 	if noise_level <= 0.001:
 		df_noise_player.volume_db = -80.0
 	else:
@@ -1191,7 +1198,8 @@ func testing_snapshot() -> Dictionary:
 		"df_has_stream": df_voice_player != null and df_voice_player.stream != null,
 		"welcome_modal_visible": welcome_modal != null and welcome_modal.visible,
 		"broadcasts": testing_get_broadcasts(),
-		"waterfall_summary": waterfall_summary
+		"waterfall_summary": waterfall_summary,
+		"hud_layout_summary": testing_get_hud_layout_summary()
 	}
 
 
@@ -1221,6 +1229,33 @@ func testing_get_waterfall_summary() -> Dictionary:
 		"average_intensity": avg_intensity,
 		"bright_bins": bright_bins,
 		"has_texture": waterfall_texture != null and waterfall_display != null and waterfall_display.texture != null
+	}
+
+
+func testing_get_hud_layout_summary() -> Dictionary:
+	var instruction_top = 0.0
+	var instruction_bottom = 0.0
+	var scanner_slider_bottom = 0.0
+	var submit_top = 0.0
+	var panel_bottom = 0.0
+	if instructions_label != null:
+		instruction_top = instructions_label.rect_position.y
+		instruction_bottom = instruction_top + instructions_label.rect_size.y
+	if scanner_volume_slider != null:
+		scanner_slider_bottom = scanner_volume_slider.rect_position.y + scanner_volume_slider.rect_size.y
+	if submit_button != null:
+		submit_top = submit_button.rect_position.y
+	if panel != null:
+		panel_bottom = panel.rect_size.y
+	return {
+		"instructions_top": instruction_top,
+		"instructions_bottom": instruction_bottom,
+		"scanner_slider_bottom": scanner_slider_bottom,
+		"submit_top": submit_top,
+		"panel_bottom": panel_bottom,
+		"instructions_clear_slider": instruction_top >= scanner_slider_bottom + 6.0,
+		"instructions_clear_buttons": instruction_bottom <= submit_top - 6.0,
+		"buttons_within_panel": submit_button != null and (submit_button.rect_position.y + submit_button.rect_size.y) <= panel_bottom - 4.0
 	}
 
 

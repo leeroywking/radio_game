@@ -81,6 +81,9 @@ The current build includes:
 - `docs/prototype.md`
   Prototype scope and controls.
 
+- `docs/curriculum-roadmap.md`
+  Curriculum and milestone planning doc that maps real RDF / ARDF skills to future product phases, especially manual fixing and rural field scenarios.
+
 - `docs/issue-log.md`
   Captured issue list and resolved items from recent iteration.
 
