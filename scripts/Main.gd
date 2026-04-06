@@ -764,15 +764,20 @@ func _update_audio_mix(reading: Dictionary) -> void:
 
 	var voice_level = reading["voice_level"]
 	var noise_level = reading["noise_level"]
+	var clarity_base = float(reading.get("clarity_base", voice_level))
 	var df_gain_db = _broadcast_gain_db(reading["broadcast_id"])
 	if reading["broadcast_id"] == "":
 		df_voice_player.volume_db = -80.0
 	elif clean_monitor_enabled:
-		df_voice_player.volume_db = _scaled_volume_db(lerp(-12.0, -1.5, voice_level) + df_gain_db, df_volume)
+		var clean_presence = clamp(max(voice_level, 0.4 + clarity_base * 0.6), 0.0, 1.0)
+		df_voice_player.volume_db = _scaled_volume_db(lerp(-8.5, -1.5, clean_presence) + df_gain_db, df_volume)
 	elif voice_level < 0.06:
-		df_voice_player.volume_db = _scaled_volume_db(-32.0 + df_gain_db, df_volume)
+		df_voice_player.volume_db = _scaled_volume_db(-20.0 + df_gain_db, df_volume)
 	else:
-		df_voice_player.volume_db = _scaled_volume_db(lerp(-16.0, -1.0, voice_level) + df_gain_db, df_volume)
+		var consistency_presence = clamp(max(clarity_base, voice_level * 0.7 + clarity_base * 0.3), 0.0, 1.0)
+		var consistency_penalty = clamp((noise_level - voice_level) * 1.8, 0.0, 1.0) * 1.5
+		var voice_target_db = lerp(-8.5, -2.5, consistency_presence) - consistency_penalty
+		df_voice_player.volume_db = _scaled_volume_db(voice_target_db + df_gain_db, df_volume)
 	if noise_level <= 0.001:
 		df_noise_player.volume_db = -80.0
 	else:

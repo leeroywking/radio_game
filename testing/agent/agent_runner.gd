@@ -46,6 +46,7 @@ func _run() -> void:
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
+		yield(_run_df_audio_consistency_case(), "completed"),
 		yield(_run_df_audio_restart_case(), "completed"),
 		yield(_run_waterfall_visibility_case(), "completed"),
 		yield(_run_waterfall_click_tuning_case(), "completed"),
@@ -202,6 +203,46 @@ func _run_df_audio_audible_case() -> Dictionary:
 			"df_voice_volume_db": snapshot["df_voice_volume_db"],
 			"df_has_stream": stream_ok,
 			"df_stream_paused": snapshot["df_stream_paused"]
+		}
+	}
+
+
+func _run_df_audio_consistency_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var sample_positions = [
+		target["position"] + Vector2(-170, -20),
+		target["position"] + Vector2(-130, 55),
+		target["position"] + Vector2(-90, 115)
+	]
+	var db_values := []
+	var on_target_count := 0
+	for sample_position in sample_positions:
+		game.testing_set_player_position(sample_position)
+		game.testing_set_aim_direction(target["position"] - sample_position)
+		game.testing_set_df_frequency(target["frequency"])
+		yield(_wait_seconds(0.25), "timeout")
+		var snapshot = game.testing_snapshot()
+		var receiver = snapshot["receiver_profile"]
+		if String(receiver["broadcast_id"]) == TARGET_ID:
+			on_target_count += 1
+		db_values.append(float(snapshot["df_voice_volume_db"]))
+	var min_db = db_values[0]
+	var max_db = db_values[0]
+	for db_value in db_values:
+		min_db = min(min_db, db_value)
+		max_db = max(max_db, db_value)
+	return {
+		"name": "df_audio_consistency",
+		"pass": on_target_count == sample_positions.size() and (max_db - min_db) <= 6.0,
+		"warning": false,
+		"details": {
+			"on_target_count": on_target_count,
+			"sample_count": db_values.size(),
+			"min_db": min_db,
+			"max_db": max_db,
+			"db_span": max_db - min_db
 		}
 	}
 
