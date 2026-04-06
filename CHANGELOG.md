@@ -21,6 +21,7 @@
 - Added automated DF audibility and DF restart regression cases to the headless testing agent.
 - Added a startup welcome modal that explains the mission and controls before the hunt begins.
 - Added a regression test that verifies the welcome modal appears on startup and can be dismissed.
+- Added `docs/curriculum-roadmap.md` to align real rabbit-hunt / ARDF skills with a staged game curriculum and roadmap, including rural navigation and manual map-plotting requirements.
 
 ## 2026-04-05
 
