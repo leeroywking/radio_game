@@ -3,6 +3,7 @@ extends Node2D
 const WORLD_SIZE := Vector2(1280, 720)
 const PLAY_AREA := Rect2(Vector2(400, 40), Vector2(840, 640))
 const PLAYER_SPEED := 220.0
+const FIRST_PERSON_PLAYER_SPEED := 420.0
 const PLAYER_RADIUS := 10.0
 const WORLD_BOUNDS := PLAY_AREA
 const PLAYER_START := Vector2(520, 560)
@@ -122,6 +123,7 @@ var current_scanner_broadcast_id := ""
 var clean_monitor_enabled := false
 var map_board_visible := false
 var first_person_mode := false
+var first_person_mouse_locked := false
 var first_person_heading_deg := 90.0
 var df_frequency := 145.000
 var df_volume := 0.85
@@ -213,6 +215,7 @@ func _ready() -> void:
 	_sync_overlay_visibility()
 	_setup_first_person_view()
 	_setup_audio()
+	_set_first_person_mouse_lock(false)
 	set_process(true)
 	set_physics_process(true)
 	update()
@@ -231,7 +234,8 @@ func _physics_process(delta: float) -> void:
 		movement.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
 	if movement.length() > 1.0:
 		movement = movement.normalized()
-	player_position += movement * PLAYER_SPEED * delta
+	var movement_speed = FIRST_PERSON_PLAYER_SPEED if first_person_mode else PLAYER_SPEED
+	player_position += movement * movement_speed * delta
 	player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
 	player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
 	update()
@@ -312,11 +316,23 @@ func _toggle_first_person_mode() -> void:
 	first_person_mode = not first_person_mode
 	if first_person_mode:
 		first_person_heading_deg = _bearing_degrees(_get_aim_vector())
+		_set_first_person_mouse_lock(true)
 		result_text = "First-person can-antenna view enabled."
 	else:
+		_set_first_person_mouse_lock(false)
 		result_text = "Returned to top-down view."
 	_sync_first_person_visibility()
 	update()
+
+
+func _set_first_person_mouse_lock(locked: bool) -> void:
+	first_person_mouse_locked = locked
+	if locked:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+			Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+	else:
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 
 func _setup_first_person_view() -> void:
@@ -899,6 +915,7 @@ func _reset_hunt() -> void:
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
 	first_person_heading_deg = 90.0
+	_set_first_person_mouse_lock(false)
 	if df_frequency_slider != null:
 		df_frequency_slider.value = df_frequency
 	_sync_control_labels()
@@ -1942,6 +1959,9 @@ func testing_snapshot() -> Dictionary:
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
 		"training_step": training_step.duplicate(true),
 		"compass_heading_deg": _bearing_degrees(_get_aim_vector()),
+		"view_world_rect": _view_world_rect(),
+		"mouse_mode": Input.get_mouse_mode(),
+		"first_person_mouse_locked": first_person_mouse_locked,
 		"first_person_mode": first_person_mode,
 		"first_person_heading_deg": first_person_heading_deg,
 		"first_person_info_text": first_person_info.text if first_person_info != null else "",
