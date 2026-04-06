@@ -17,6 +17,9 @@ if [[ ! -d "$SITE_DIR" ]]; then
 fi
 
 REMOTE_URL="$(git remote get-url origin)"
+if [[ -n "${GITHUB_TOKEN:-}" && "$REMOTE_URL" =~ ^https://github.com/ ]]; then
+  REMOTE_URL="${REMOTE_URL/https:\/\/github.com\//https:\/\/x-access-token:${GITHUB_TOKEN}@github.com\/}"
+fi
 WORK_DIR="$(mktemp -d)"
 cleanup() {
   rm -rf "$WORK_DIR"

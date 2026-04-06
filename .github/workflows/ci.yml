@@ -124,6 +124,7 @@ jobs:
 
       - name: Publish branch preview to gh-pages
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_BRANCH: ${{ github.ref_name }}
         run: |
           if [[ "$TARGET_BRANCH" == "master" || "$TARGET_BRANCH" == "main" ]]; then
