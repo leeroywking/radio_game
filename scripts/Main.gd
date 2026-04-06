@@ -648,14 +648,6 @@ func _map_board_bearing_summary() -> String:
 	return "\n".join(lines)
 
 
-func _bearing_degrees(direction: Vector2) -> float:
-	var normalized = direction.normalized()
-	var degrees_value = rad2deg(atan2(normalized.x, -normalized.y))
-	if degrees_value < 0.0:
-		degrees_value += 360.0
-	return degrees_value
-
-
 func _map_board_font():
 	if map_board_status_label != null:
 		return map_board_status_label.get_font("font")
