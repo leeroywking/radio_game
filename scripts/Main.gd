@@ -1017,6 +1017,7 @@ func _update_audio_mix(reading: Dictionary) -> void:
 	else:
 		scanner_voice_player.volume_db = _scaled_volume_db(lerp(-20.0, -2.0, scanner_level) + scanner_gain_db, scanner_volume)
 	scanner_voice_player.pitch_scale = 1.0
+	_sync_receiver_audio()
 
 
 func _update_player_stream(player: AudioStreamPlayer, broadcast_id: String, current_id: String) -> void:
@@ -1036,6 +1037,20 @@ func _update_player_stream(player: AudioStreamPlayer, broadcast_id: String, curr
 	else:
 		player.stream = audio_stream_cache[broadcast_id]
 	player.play()
+
+
+func _sync_receiver_audio() -> void:
+	if df_voice_player == null or scanner_voice_player == null:
+		return
+	if current_df_broadcast_id == "" or current_df_broadcast_id != current_scanner_broadcast_id:
+		return
+	if not df_voice_player.playing or not scanner_voice_player.playing:
+		return
+	scanner_voice_player.pitch_scale = df_voice_player.pitch_scale
+	var df_position = df_voice_player.get_playback_position()
+	var scanner_position = scanner_voice_player.get_playback_position()
+	if abs(df_position - scanner_position) > 0.02:
+		scanner_voice_player.seek(df_position)
 
 
 func _push_scope_sample(reading: Dictionary) -> void:
@@ -1324,6 +1339,19 @@ func testing_trigger_scanner() -> void:
 
 func testing_unlock_scanner() -> void:
 	_unlock_scanner()
+
+
+func testing_lock_scanner_to_broadcast(broadcast_id: String) -> void:
+	var broadcast = _broadcast_by_id(broadcast_id)
+	if broadcast.empty():
+		_unlock_scanner()
+		return
+	scanner_active = false
+	scanner_locked = true
+	scanner_locked_broadcast_id = broadcast_id
+	scanner_lock_strength = 1.0
+	scanner_frequency = broadcast["frequency"]
+	scanner_button.text = "Resume Scan"
 
 
 func testing_toggle_map_board() -> void:
