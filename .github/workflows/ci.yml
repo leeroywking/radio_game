@@ -37,11 +37,14 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             RANGE_START="$BASE_SHA"
-          else
+          elif [[ "$REF_NAME" == "master" || "$REF_NAME" == "main" ]]; then
             RANGE_START="$BEFORE_SHA"
+          else
+            RANGE_START="$(git merge-base HEAD origin/master)"
           fi
 
           if [[ -z "$RANGE_START" || "$RANGE_START" == "0000000000000000000000000000000000000000" ]]; then
