@@ -8,6 +8,7 @@ The current build includes:
 
 - A real USGS Washington hillshade map backdrop
 - Multiple simultaneous broadcasters with one designated as the real target conversation
+- Five distinct clean educational broadcasters now sit on the band before the target conversation is found
 - DF receiver tuning by slider and direct numeric entry
 - Click-to-tune frequency selection from the waterfall
 - A manual-start autoscanner with lock and unlock behavior
@@ -38,6 +39,9 @@ The current build includes:
 
 6. Branch-first workflow should be treated as standard operating procedure.
    Future agents should start work on a short-lived branch and avoid direct `master` or `main` edits unless the user explicitly requests it or CI/release recovery requires it.
+
+7. Educational content should not sound too uniform.
+   The original three clean training clips became recognizable too quickly, so the prototype now mixes in additional clean imported voice sources to make decoys less obvious.
 
 ## Current files to know
 
