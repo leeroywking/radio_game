@@ -417,41 +417,25 @@ func _setup_audio() -> void:
 func _load_loopable_stream(path: String, should_loop: bool):
 	var lower_path = path.to_lower()
 	if lower_path.ends_with(".mp3"):
-		var imported_stream = _load_imported_audio_stream(path)
-		if imported_stream != null:
-			var duplicated = imported_stream.duplicate(true)
-			if duplicated is AudioStreamMP3:
-				duplicated.loop = should_loop
-				duplicated.loop_offset = 0.0
-			return duplicated
+		return _load_mp3_stream(path, should_loop)
 	if path.to_lower().ends_with(".wav"):
 		return _load_wav_stream(path, should_loop)
 	return null
 
 
-func _load_imported_audio_stream(source_path: String):
-	var remap_path = _resolve_imported_resource_path(source_path)
-	if remap_path == "":
-		push_error("Unable to resolve imported audio stream for %s" % source_path)
-		return null
-	var imported_stream = load(remap_path)
-	if imported_stream == null:
-		push_error("Unable to load imported audio stream at %s" % remap_path)
-	return imported_stream
-
-
-func _resolve_imported_resource_path(source_path: String) -> String:
-	var import_config_path = source_path + ".import"
-	var import_file = File.new()
-	var err = import_file.open(import_config_path, File.READ)
+func _load_mp3_stream(path: String, should_loop: bool) -> AudioStream:
+	var file = File.new()
+	var err = file.open(path, File.READ)
 	if err != OK:
-		return ""
-	while not import_file.eof_reached():
-		var line = import_file.get_line().strip_edges()
-		if line.begins_with("path=\"res://"):
-			var remap_path = line.trim_prefix("path=\"")
-			return remap_path.trim_suffix("\"")
-	return ""
+		push_error("Unable to open MP3 stream at %s" % path)
+		return AudioStreamMP3.new()
+	var bytes = file.get_buffer(file.get_len())
+	file.close()
+	var stream = AudioStreamMP3.new()
+	stream.data = bytes
+	stream.loop = should_loop
+	stream.loop_offset = 0.0
+	return stream
 
 
 func _trigger_scanner() -> void:
