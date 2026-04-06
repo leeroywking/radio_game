@@ -42,6 +42,7 @@ func _run() -> void:
 
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
+		yield(_run_scanner_button_label_case(), "completed"),
 		yield(_run_reset_randomization_case(), "completed"),
 		yield(_run_df_numeric_entry_case(), "completed"),
 		yield(_run_df_audio_audible_case(), "completed"),
@@ -99,6 +100,34 @@ func _run_welcome_modal_case() -> Dictionary:
 		"details": {
 			"initially_visible": initially_visible,
 			"dismissed": dismissed
+		}
+	}
+
+
+func _run_scanner_button_label_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	var initial_snapshot = game.testing_snapshot()
+	var initial_label = String(initial_snapshot.get("scanner_button_text", ""))
+	game.testing_trigger_scanner()
+	yield(_wait_seconds(0.05), "timeout")
+	var sweeping_snapshot = game.testing_snapshot()
+	var sweeping_label = String(sweeping_snapshot.get("scanner_button_text", ""))
+	var locked_label = ""
+	for _i in range(50):
+		yield(_wait_seconds(0.1), "timeout")
+		var snapshot = game.testing_snapshot()
+		if snapshot["scanner_profile"]["state"] == "locked":
+			locked_label = String(snapshot.get("scanner_button_text", ""))
+			break
+	return {
+		"name": "scanner_button_label",
+		"pass": initial_label == "Start Scan" and sweeping_label == "Scanning" and locked_label == "Resume Scan",
+		"warning": false,
+		"details": {
+			"initial_label": initial_label,
+			"sweeping_label": sweeping_label,
+			"locked_label": locked_label
 		}
 	}
 
