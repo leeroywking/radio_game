@@ -85,6 +85,7 @@ The first-person can-antenna slice now exists as an alternate presentation mode:
 - the same DF simulation and bearing capture logic remain authoritative
 - a small tactical inset map records player position and captured LOBs while in first person
 - a compact in-view overlay shows heading, DF frequency, last reading, and the active prompt
+- the 3D terrain is now a continuous generated heightfield sampled from the WA map, so walking in first person follows visible rises and dips instead of crossing a flat plane
 - the 3D view is intentionally low-resolution and simple to preserve a retro training feel
 - the overhead hunt still behaves like a fixed paper map, with the full exercise area visible at once
 
