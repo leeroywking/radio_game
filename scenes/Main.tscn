@@ -41,7 +41,7 @@ margin_left = 24.0
 margin_top = 58.0
 margin_right = 516.0
 margin_bottom = 250.0
-text = "Mission: find the real conversation and ignore the educational content.\n\nHow to play:\n- Move with WASD and point the DF antenna with the mouse.\n- Tune the DF receiver by typing a frequency, dragging the slider, or clicking the waterfall.\n- Listen for the clearest copy on the real conversation while using the scanner as a search tool.\n- Press Space from two or more locations to capture bearings.\n- Click the map to place your estimated fix, then press Submit.\n\nHelpful controls:\n- F starts the scanner\n- Unlock drops the current scanner lock\n- C toggles clean monitor"
+text = "Purpose: learn to identify the real conversation, take clean bearings, and plot a usable fix.\n\nStep 1 starts after you close this panel:\nFind the real conversation and ignore the educational traffic.\n\nCore controls:\n- WASD move\n- Mouse aims the DF antenna\n- Type a frequency, drag the DF slider, or click the waterfall to tune\n- Space captures a bearing\n- M opens the map board"
 autowrap = true
 
 [node name="WelcomeHint" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
@@ -49,7 +49,7 @@ margin_left = 24.0
 margin_top = 258.0
 margin_right = 516.0
 margin_bottom = 280.0
-text = "Start the hunt when you're ready."
+text = "The live training step in the HUD will update as you make progress."
 align = 1
 
 [node name="WelcomeButton" type="Button" parent="HUD/Root/WelcomeModal/WelcomePanel"]
@@ -224,8 +224,8 @@ value = 70.0
 margin_left = 16.0
 margin_top = 640.0
 margin_right = 336.0
-margin_bottom = 664.0
-text = "WASD move, mouse aim, tune DF, press Space for bearings, click to place a fix. F scans. M opens the map board."
+margin_bottom = 692.0
+text = "Training step"
 autowrap = true
 
 [node name="SubmitButton" type="Button" parent="HUD/Root/Panel"]

@@ -20,8 +20,9 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Full-band waterfall display across the scannable range
 - Toggleable map board overlay for a larger topographic review view
 - Map-board plotting aids including a north reference ring, bearing cards, uncertainty wedges, and board-side fix placement
+- Step-by-step training prompts that advance with the player’s progress
+- Lensatic-style compass overlay with live heading readout
 - Independent DF and scanner audio volume controls
-- Per-source stereo routing controls
 - Aim-quality feedback
 - Bearing coaching with azimuth readout and keep/retake guidance
 - Bearing capture from multiple positions
@@ -54,7 +55,6 @@ The demo now includes a simplified scanner path:
 - If it lands on the transmitter frequency with enough signal, it locks and plays audio
 - The player can unlock the scanner and resume hunting
 - The DF receiver and scanner have separate volume controls
-- Each broadcaster can be routed to left, right, or both channels for demo and training experiments
 - Educational decoys now use a broader mix of clean voice clips so identifying the real conversation takes a bit more discretion
 
 The waterfall display is currently a fake but structured spectrogram:
@@ -73,7 +73,14 @@ The map board is now closer to a hand-plotting aid than a simple zoomed view:
 - Bearings appear as both precise lines and broader uncertainty wedges based on quality
 - A north-up reference ring gives the player a quick azimuth aid while plotting
 - Captured bearings are listed as simple bearing cards with azimuth, quality, and frequency
+- Captured bearings are labeled in-world and on the map board so the shot location and angle stay visually linked
 - Left-clicking the board places the current estimated fix directly on the plotting surface
+
+The prototype now includes a lightweight training flow instead of only a static welcome panel:
+
+- The welcome modal explains the purpose of the exercise briefly
+- The HUD advances through one live step at a time
+- The sequence walks the player through identifying the target, taking bearings, plotting, and submitting
 
 The stated task for the player is:
 
