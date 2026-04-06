@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added `docs/first-person-can-antenna-plan.md` describing the first-person DF architecture, phases, and integration plan.
+- Added a first vertical slice of a first-person can-antenna mode using a low-resolution 3D viewport inside the existing 2D game.
+- Added a first-person heading model, simple can-antenna view model, and tactical inset map that shows captured lines of bearing.
+- Added in-view first-person reading overlays for heading, DF frequency, last reading, and step prompt text.
+- Added regression cases covering first-person mode toggle behavior and first-person reading capture.
 - Fixed DF/scanner shared-broadcast playback so both receivers stay sample-aligned on the same conversation.
 - Added a deterministic regression test for DF/scanner shared-broadcast sync.
 - Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.
