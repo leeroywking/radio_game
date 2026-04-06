@@ -9,6 +9,7 @@
   - `bugfix/df-audio-audible`
   - `docs/branch-policy`
 - Open a PR for review before merging whenever practical.
+- For reviewable work, do not stop at "branch pushed". The work is only handoff-ready once there is a GitHub PR URL or a clear blocker.
 
 ## Exceptions
 
@@ -39,3 +40,7 @@
   - you hit a real blocker that cannot be resolved safely without user input
 - If the work touches GitHub state or automation, push the branch and open the PR instead of leaving the change only in the local workspace.
 - For reviewable feature work, "ready" means the PR includes a visible live preview link when the branch changes browser-playable behavior.
+- In user-facing status and final messages, always state the PR status explicitly:
+  - `open` with PR number and URL, or
+  - `merged` with PR number and URL
+- Never assume the user will infer PR state from context such as "it’s up" or from an empty open-PR list.
