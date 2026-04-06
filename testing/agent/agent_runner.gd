@@ -43,6 +43,7 @@ func _run() -> void:
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
 		yield(_run_map_board_case(), "completed"),
+		yield(_run_map_board_plotting_case(), "completed"),
 		yield(_run_education_audio_variety_case(), "completed"),
 		yield(_run_scanner_button_label_case(), "completed"),
 		yield(_run_hud_layout_case(), "completed"),
@@ -128,6 +129,31 @@ func _run_map_board_case() -> Dictionary:
 			"open_visible": open_visible,
 			"closed_hidden": closed_hidden
 		}
+	}
+
+
+func _run_map_board_plotting_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-180, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	yield(_wait_seconds(0.15), "timeout")
+	game.testing_capture_bearing()
+	yield(_wait_seconds(0.05), "timeout")
+	game.testing_toggle_map_board()
+	yield(_wait_seconds(0.05), "timeout")
+	game.testing_place_fix_on_map_board(Vector2(0.58, 0.42))
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var board = snapshot.get("map_board_summary", {})
+	return {
+		"name": "map_board_plotting",
+		"pass": bool(snapshot.get("map_board_visible", false)) and bool(board.get("has_bearing_list", false)) and int(board.get("bearing_cards", 0)) >= 1 and int(board.get("wedge_count", 0)) >= 1 and bool(board.get("has_fix", false)),
+		"warning": false,
+		"details": board
 	}
 
 

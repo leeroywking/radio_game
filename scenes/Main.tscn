@@ -261,7 +261,7 @@ margin_left = 360.0
 margin_top = 680.0
 margin_right = 960.0
 margin_bottom = 706.0
-text = "M closes the map board. Use this view to compare bearings and place a fix."
+text = "M closes the map board. Left click on the board to place a fix. Use bearing cards and the north reference to plot by hand."
 align = 1
 
 [node name="MapBoardStatus" type="Label" parent="HUD/Root/MapBoardOverlay"]
@@ -271,3 +271,11 @@ margin_right = 920.0
 margin_bottom = 86.0
 text = "Status"
 align = 1
+
+[node name="MapBoardBearingList" type="Label" parent="HUD/Root/MapBoardOverlay"]
+margin_left = 52.0
+margin_top = 96.0
+margin_right = 360.0
+margin_bottom = 650.0
+text = "Bearings"
+autowrap = true

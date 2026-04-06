@@ -26,6 +26,8 @@
 - Added a regression case that verifies educational-audio variety and that one of the new clean educational stations is actually audible through the DF path.
 - Added `docs/curriculum-roadmap.md` to align real rabbit-hunt / ARDF skills with a staged game curriculum and roadmap, including rural navigation and manual map-plotting requirements.
 - Added a first-pass map board overlay so players can open a larger topo view while hunting and compare bearings against a dedicated board.
+- Upgraded the map board with manual plotting support: north reference ring, bearing cards, uncertainty wedges, and fix placement directly on the board.
+- Added a regression case that verifies the map board plotting aids appear and that a fix can be placed from the board view.
 
 ## 2026-04-05
 

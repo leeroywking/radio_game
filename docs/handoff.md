@@ -11,7 +11,8 @@ The current build includes:
 - Five distinct clean educational broadcasters now sit on the band before the target conversation is found
 - DF receiver tuning by slider and direct numeric entry
 - Click-to-tune frequency selection from the waterfall
-- A first-pass map board overlay that can be toggled during the hunt for a larger topo view
+- A map board overlay that can be toggled during the hunt for a larger topo view
+- Manual plotting aids on the map board: bearing cards, uncertainty wedges, north reference ring, and board-side fix placement
 - A manual-start autoscanner with lock and unlock behavior
 - Separate DF and scanner volume controls
 - A visible full-band waterfall rendered in the HUD
@@ -97,7 +98,7 @@ The current build includes:
 - The waterfall now renders inside the HUD as a texture-backed display. This mattered because the old `Node2D` drawing path sat behind the opaque panel and could be effectively invisible even when waterfall data existed.
 - Clicking inside the waterfall now tunes the DF frequency. The display energy is also derived from the live `broadcasts` list and distance-based station strength, so it tracks the current scenario instead of a generic fake band texture.
 - Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
-- The map board is only a first step toward manual plotting. It shows the topo view, player marker, fix marker, and captured bearings, but it is not yet a full notebook / protractor workflow.
+- The map board is still not a full notebook workflow, but it is no longer just a zoomed view. It now supports direct fix placement on the board and shows bearings with azimuth notes and uncertainty wedges.
 
 ## Recommended next steps
 

@@ -11,6 +11,8 @@ const SCOPE_RECT := Rect2(Vector2(32, 204), Vector2(322, 72))
 const WATERFALL_RECT := Rect2(Vector2(32, 324), Vector2(322, 92))
 const WATERFALL_LABEL_HEIGHT := 18.0
 const MAP_BOARD_RECT := Rect2(Vector2(392, 92), Vector2(840, 556))
+const MAP_BOARD_RING_CENTER := Vector2(194, 218)
+const MAP_BOARD_RING_RADIUS := 92.0
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
 const SCANNER_MIN_FREQ := 144.000
@@ -161,6 +163,7 @@ onready var scanner_volume_value := $HUD/Root/Panel/ScannerVolumeValue
 onready var waterfall_display := $HUD/Root/Panel/WaterfallDisplay
 onready var map_board_overlay := $HUD/Root/MapBoardOverlay
 onready var map_board_status_label := $HUD/Root/MapBoardOverlay/MapBoardStatus
+onready var map_board_bearing_list := $HUD/Root/MapBoardOverlay/MapBoardBearingList
 
 
 func _ready() -> void:
@@ -237,6 +240,11 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_map_board"):
 		_toggle_map_board()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
+		if map_board_visible and MAP_BOARD_RECT.has_point(event.position):
+			fix_position = _world_point_from_map_board(event.position)
+			result_text = "Fix marker placed from map board."
+			update()
+			return
 		if waterfall_display != null and waterfall_display.get_global_rect().has_point(event.position):
 			_tune_df_to_waterfall_click(event.position)
 			return
@@ -291,9 +299,12 @@ func _draw_map_board() -> void:
 	if map_texture != null:
 		draw_texture_rect(map_texture, MAP_BOARD_RECT, false, Color(0.98, 0.98, 0.96, 1.0))
 	draw_rect(MAP_BOARD_RECT, Color(0.16, 0.12, 0.08, 0.9), false, 2.0)
+	_draw_map_board_grid()
+	_draw_map_board_reference_ring()
 	for bearing in bearings:
 		var origin = _map_board_point(bearing["origin"])
 		var end_point = _map_board_point(bearing["origin"] + bearing["direction"] * BEARING_LENGTH)
+		_draw_bearing_wedge(origin, end_point, String(bearing.get("quality", "poor")))
 		draw_line(origin, end_point, Color(0.12, 0.62, 0.88, 0.82), 2.0)
 		draw_circle(origin, 4.0, Color(0.92, 0.97, 1.0))
 	var player_marker = _map_board_point(player_position)
@@ -308,12 +319,88 @@ func _draw_map_board() -> void:
 		draw_circle(target_marker, 6.0, Color(1.0, 0.75, 0.26))
 
 
+func _draw_map_board_grid() -> void:
+	var font = _map_board_font()
+	for i in range(1, 4):
+		var ratio = i / 4.0
+		var x = lerp(MAP_BOARD_RECT.position.x, MAP_BOARD_RECT.end.x, ratio)
+		var y = lerp(MAP_BOARD_RECT.position.y, MAP_BOARD_RECT.end.y, ratio)
+		draw_line(Vector2(x, MAP_BOARD_RECT.position.y), Vector2(x, MAP_BOARD_RECT.end.y), Color(0.25, 0.19, 0.12, 0.12), 1.0)
+		draw_line(Vector2(MAP_BOARD_RECT.position.x, y), Vector2(MAP_BOARD_RECT.end.x, y), Color(0.25, 0.19, 0.12, 0.12), 1.0)
+	var north_arrow = MAP_BOARD_RECT.position + Vector2(MAP_BOARD_RECT.size.x - 32.0, 22.0)
+	draw_line(north_arrow + Vector2(0, 26), north_arrow + Vector2(0, -10), Color(0.15, 0.12, 0.08), 3.0)
+	draw_colored_polygon(
+		PoolVector2Array([north_arrow + Vector2(0, -18), north_arrow + Vector2(-8, -2), north_arrow + Vector2(8, -2)]),
+		Color(0.88, 0.26, 0.20)
+	)
+	if font != null:
+		draw_string(font, north_arrow + Vector2(-6, 42), "N", Color(0.15, 0.12, 0.08))
+
+
+func _draw_map_board_reference_ring() -> void:
+	var font = _map_board_font()
+	draw_circle(MAP_BOARD_RING_CENTER, MAP_BOARD_RING_RADIUS, Color(0.10, 0.12, 0.16, 0.18))
+	draw_arc(MAP_BOARD_RING_CENTER, MAP_BOARD_RING_RADIUS, 0.0, TAU, 48, Color(0.70, 0.74, 0.82, 0.34), 2.0)
+	for marker in range(0, 360, 15):
+		var radians = deg2rad(marker - 90.0)
+		var outer = MAP_BOARD_RING_CENTER + Vector2(cos(radians), sin(radians)) * MAP_BOARD_RING_RADIUS
+		var inner = MAP_BOARD_RING_CENTER + Vector2(cos(radians), sin(radians)) * (MAP_BOARD_RING_RADIUS - (14.0 if marker % 45 == 0 else 7.0))
+		draw_line(inner, outer, Color(0.80, 0.84, 0.91, 0.48), 1.5)
+	for label in [0, 90, 180, 270]:
+		var radians = deg2rad(label - 90.0)
+		var pos = MAP_BOARD_RING_CENTER + Vector2(cos(radians), sin(radians)) * (MAP_BOARD_RING_RADIUS + 22.0)
+		var text = "N"
+		if label == 90:
+			text = "E"
+		elif label == 180:
+			text = "S"
+		elif label == 270:
+			text = "W"
+		if font != null:
+			draw_string(font, pos + Vector2(-6, 4), text, Color(0.86, 0.90, 0.97))
+
+
+func _draw_bearing_wedge(origin: Vector2, end_point: Vector2, quality: String) -> void:
+	var wedge_degrees = 18.0
+	if quality == "excellent":
+		wedge_degrees = 4.0
+	elif quality == "good":
+		wedge_degrees = 7.0
+	elif quality == "usable":
+		wedge_degrees = 12.0
+	var bearing_vector = end_point - origin
+	if bearing_vector.length() <= 0.01:
+		return
+	var bearing_angle = bearing_vector.angle()
+	var outer_length = min(MAP_BOARD_RECT.size.x, MAP_BOARD_RECT.size.y) * 0.78
+	var left_angle = bearing_angle - deg2rad(wedge_degrees)
+	var right_angle = bearing_angle + deg2rad(wedge_degrees)
+	var wedge_points = PoolVector2Array([
+		origin,
+		origin + Vector2(cos(left_angle), sin(left_angle)) * outer_length,
+		origin + Vector2(cos(right_angle), sin(right_angle)) * outer_length
+	])
+	var wedge_color = Color(0.16, 0.62, 0.88, 0.07)
+	if quality == "poor":
+		wedge_color = Color(0.94, 0.70, 0.24, 0.08)
+	draw_colored_polygon(wedge_points, wedge_color)
+
+
 func _map_board_point(world_position: Vector2) -> Vector2:
 	var ratio_x = clamp((world_position.x - PLAY_AREA.position.x) / PLAY_AREA.size.x, 0.0, 1.0)
 	var ratio_y = clamp((world_position.y - PLAY_AREA.position.y) / PLAY_AREA.size.y, 0.0, 1.0)
 	return Vector2(
 		MAP_BOARD_RECT.position.x + ratio_x * MAP_BOARD_RECT.size.x,
 		MAP_BOARD_RECT.position.y + ratio_y * MAP_BOARD_RECT.size.y
+	)
+
+
+func _world_point_from_map_board(board_position: Vector2) -> Vector2:
+	var ratio_x = clamp((board_position.x - MAP_BOARD_RECT.position.x) / MAP_BOARD_RECT.size.x, 0.0, 1.0)
+	var ratio_y = clamp((board_position.y - MAP_BOARD_RECT.position.y) / MAP_BOARD_RECT.size.y, 0.0, 1.0)
+	return Vector2(
+		PLAY_AREA.position.x + ratio_x * PLAY_AREA.size.x,
+		PLAY_AREA.position.y + ratio_y * PLAY_AREA.size.y
 	)
 
 
@@ -439,7 +526,9 @@ func _update_status() -> void:
 		lines.append(result_text)
 	status_label.text = "\n".join(lines)
 	if map_board_status_label != null:
-		map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s" % [df_frequency, bearings.size(), fix_text]
+		map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s | Plot N-up" % [df_frequency, bearings.size(), fix_text]
+	if map_board_bearing_list != null:
+		map_board_bearing_list.text = _map_board_bearing_summary()
 
 
 func _setup_audio() -> void:
@@ -518,6 +607,42 @@ func _sync_overlay_visibility() -> void:
 		panel.visible = not map_board_visible
 	if map_board_overlay != null:
 		map_board_overlay.visible = map_board_visible
+
+
+func _map_board_bearing_summary() -> String:
+	var lines := [
+		"Captured Bearings",
+		"Use the azimuth and quality to plot from each origin."
+	]
+	if bearings.empty():
+		lines.append("No bearings yet.")
+		return "\n".join(lines)
+	for index in range(bearings.size()):
+		var bearing = bearings[index]
+		var degrees_value = _bearing_degrees(Vector2(bearing["direction"].x, bearing["direction"].y))
+		lines.append(
+			"%d. %03d deg  %s  %.3f MHz" % [
+				index + 1,
+				int(round(degrees_value)) % 360,
+				String(bearing.get("quality", "poor")).capitalize(),
+				float(bearing.get("frequency", df_frequency))
+			]
+		)
+	return "\n".join(lines)
+
+
+func _bearing_degrees(direction: Vector2) -> float:
+	var normalized = direction.normalized()
+	var degrees_value = rad2deg(atan2(normalized.x, -normalized.y))
+	if degrees_value < 0.0:
+		degrees_value += 360.0
+	return degrees_value
+
+
+func _map_board_font():
+	if map_board_status_label != null:
+		return map_board_status_label.get_font("font")
+	return null
 
 
 func _toggle_clean_monitor() -> void:
@@ -1205,6 +1330,15 @@ func testing_toggle_map_board() -> void:
 	_toggle_map_board()
 
 
+func testing_place_fix_on_map_board(normalized_point: Vector2) -> void:
+	var board_point = Vector2(
+		MAP_BOARD_RECT.position.x + clamp(normalized_point.x, 0.0, 1.0) * MAP_BOARD_RECT.size.x,
+		MAP_BOARD_RECT.position.y + clamp(normalized_point.y, 0.0, 1.0) * MAP_BOARD_RECT.size.y
+	)
+	fix_position = _world_point_from_map_board(board_point)
+	result_text = "Fix marker placed from map board."
+
+
 func testing_set_clean_monitor(enabled: bool) -> void:
 	clean_monitor_enabled = enabled
 	if clean_monitor_checkbox != null:
@@ -1228,6 +1362,7 @@ func testing_find_broadcast(broadcast_id: String) -> Dictionary:
 
 func testing_snapshot() -> Dictionary:
 	var waterfall_summary = testing_get_waterfall_summary()
+	var map_board_summary = testing_get_map_board_summary()
 	return {
 		"player_position": player_position,
 		"df_frequency": df_frequency,
@@ -1251,6 +1386,7 @@ func testing_snapshot() -> Dictionary:
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,
+		"map_board_summary": map_board_summary,
 		"hud_layout_summary": testing_get_hud_layout_summary()
 	}
 
@@ -1308,6 +1444,21 @@ func testing_get_hud_layout_summary() -> Dictionary:
 		"instructions_clear_slider": instruction_top >= scanner_slider_bottom + 6.0,
 		"instructions_clear_buttons": instruction_bottom <= submit_top - 6.0,
 		"buttons_within_panel": submit_button != null and (submit_button.rect_position.y + submit_button.rect_size.y) <= panel_bottom - 4.0
+	}
+
+
+func testing_get_map_board_summary() -> Dictionary:
+	var wedge_count := 0
+	var bearing_cards := 0
+	for bearing in bearings:
+		wedge_count += 1
+		bearing_cards += 1
+	return {
+		"bearing_cards": bearing_cards,
+		"wedge_count": wedge_count,
+		"has_bearing_list": map_board_bearing_list != null and map_board_bearing_list.text.length() > 0,
+		"has_status": map_board_status_label != null and map_board_status_label.text.length() > 0,
+		"has_fix": fix_position != null
 	}
 
 
