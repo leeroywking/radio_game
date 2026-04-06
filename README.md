@@ -18,6 +18,7 @@ Radio direction-finding training prototype built in Godot. The current gameplay 
 
 - Live demo: https://leeroywking.github.io/radio_game/
 - Latest release: https://github.com/leeroywking/radio_game/releases/latest
+- Current version source of truth: [VERSION](./VERSION)
 - Architecture notes: [docs/architecture.md](/home/ein/projects/simple_game/docs/architecture.md)
 - Prototype scope: [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md)
 - Distribution notes: [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md)
@@ -72,7 +73,7 @@ The test agent writes local runtime reports into `testing/reports/`, compares th
 
 ## Releases And Downloads
 
-The repo publishes a rolling `Prototype Latest` release on successful pushes to `master` or `main`.
+The repo publishes a versioned GitHub release when `VERSION` changes on a successful push to `master` or `main`.
 
 Release artifacts include:
 

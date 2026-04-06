@@ -22,6 +22,7 @@
 - Preferred checks for this repo:
   - `./testing/run_agent.sh`
   - `./run_demo.sh --quit`
+- Reviewable product changes should also include a small `VERSION` bump.
 - For feature, UI, or gameplay work intended for PR review, make sure the branch can produce a browser preview and include that live-build URL in the PR body.
 - Use the repo's preview URL conventions:
   - default branch build: `https://leeroywking.github.io/radio_game/`
@@ -44,3 +45,4 @@
   - `open` with PR number and URL, or
   - `merged` with PR number and URL
 - Never assume the user will infer PR state from context such as "it’s up" or from an empty open-PR list.
+- If a PR changes shipped behavior in `scripts/`, `scenes/`, `assets/`, `project.godot`, or similar product files, bump `VERSION` in the same PR unless the user explicitly says not to.
