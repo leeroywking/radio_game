@@ -19,6 +19,7 @@ The current build includes:
 - Waterfall energy driven by the live station list and player-relative strength
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
+- DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
 - Bearing capture, fix placement, and scoring
 - A headless gameplay testing agent with comparison against the previous run
 
@@ -73,6 +74,9 @@ The current build includes:
 
 - DF audio regression coverage
   The headless testing agent now asserts that the DF path is actually audible on the target broadcast and that the DF player self-recovers if playback stops while the tuned broadcast remains unchanged.
+
+- Shared-broadcast sync coverage
+  The headless testing agent also forces both receiver paths onto the same broadcast and verifies they remain time-aligned.
 
 - `.github/workflows/ci.yml`
   GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and publishes branch previews plus the default HTML5 build to GitHub Pages.

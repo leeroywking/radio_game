@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed DF/scanner shared-broadcast playback so both receivers stay sample-aligned on the same conversation.
+- Added a deterministic regression test for DF/scanner shared-broadcast sync.
 - Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.
 - Added `scripts/build_exports.sh` to download export templates and package release artifacts.
 - Added `docs/distribution.md` describing local outputs and itch.io upload paths.

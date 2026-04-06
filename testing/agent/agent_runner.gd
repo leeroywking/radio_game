@@ -57,6 +57,7 @@ func _run() -> void:
 		yield(_run_waterfall_station_energy_case(), "completed"),
 		yield(_run_bearing_capture_audio_continuity_case(), "completed"),
 		yield(_run_scanner_lock_case(), "completed"),
+		yield(_run_df_scanner_audio_sync_case(), "completed"),
 		yield(_run_fix_submission_case(), "completed"),
 		yield(_run_target_audio_continuity_case(false), "completed"),
 		yield(_run_target_audio_continuity_case(true), "completed")
@@ -513,6 +514,34 @@ func _run_scanner_lock_case() -> Dictionary:
 		"details": {
 			"locked_broadcast_id": locked_id,
 			"scanner_frequency": game.testing_snapshot()["scanner_profile"]["frequency"]
+		}
+	}
+
+
+func _run_df_scanner_audio_sync_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.1), "timeout")
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position = target["position"] + Vector2(-110, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	game.testing_lock_scanner_to_broadcast(TARGET_ID)
+	yield(_wait_seconds(0.15), "timeout")
+	var snapshot = game.testing_snapshot()
+	var df_position = float(snapshot.get("df_playback_position", 0.0))
+	var scanner_position = float(snapshot.get("scanner_playback_position", 0.0))
+	var delta = abs(df_position - scanner_position)
+	return {
+		"name": "df_scanner_audio_sync",
+		"pass": String(snapshot["receiver_profile"]["broadcast_id"]) == TARGET_ID and String(snapshot["scanner_profile"]["broadcast_id"]) == TARGET_ID and delta <= 0.05,
+		"warning": false,
+		"details": {
+			"df_position": df_position,
+			"scanner_position": scanner_position,
+			"delta": delta,
+			"df_broadcast": snapshot["receiver_profile"]["broadcast_id"],
+			"scanner_broadcast": snapshot["scanner_profile"]["broadcast_id"]
 		}
 	}
 
