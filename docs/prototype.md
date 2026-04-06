@@ -19,6 +19,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Receiver scope feedback tied to the current audio state
 - Full-band waterfall display across the scannable range
 - Toggleable map board overlay for a larger topographic review view
+- Map-board plotting aids including a north reference ring, bearing cards, uncertainty wedges, and board-side fix placement
 - Independent DF and scanner audio volume controls
 - Per-source stereo routing controls
 - Aim-quality feedback
@@ -65,6 +66,13 @@ The waterfall display is currently a fake but structured spectrogram:
 - Clicking the waterfall tunes the DF receiver to the selected displayed frequency
 - Waterfall peaks are now driven by the live station list and player-relative signal strength, not a generic band pattern
 - Capturing a bearing should no longer interrupt DF audio playback
+
+The map board is now closer to a hand-plotting aid than a simple zoomed view:
+
+- Bearings appear as both precise lines and broader uncertainty wedges based on quality
+- A north-up reference ring gives the player a quick azimuth aid while plotting
+- Captured bearings are listed as simple bearing cards with azimuth, quality, and frequency
+- Left-clicking the board places the current estimated fix directly on the plotting surface
 
 The stated task for the player is:
 
