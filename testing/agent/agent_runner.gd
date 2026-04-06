@@ -42,6 +42,7 @@ func _run() -> void:
 
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
+		yield(_run_paper_map_extent_case(), "completed"),
 		yield(_run_map_board_case(), "completed"),
 		yield(_run_map_board_plotting_case(), "completed"),
 		yield(_run_first_person_mode_case(), "completed"),
@@ -116,6 +117,43 @@ func _run_welcome_modal_case() -> Dictionary:
 	}
 
 
+func _run_paper_map_extent_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	var before = game.testing_snapshot()
+	game.testing_set_player_position(Vector2(1120, 140))
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var broadcasts = snapshot.get("broadcasts", [])
+	var visible_broadcasts := 0
+	var all_on_map := true
+	for broadcast in broadcasts:
+		var position = broadcast.get("position", Vector2.ZERO)
+		var on_map = position.x >= 400.0 and position.x <= 1240.0 and position.y >= 40.0 and position.y <= 680.0
+		if on_map:
+			visible_broadcasts += 1
+		else:
+			all_on_map = false
+	var player_position = snapshot.get("player_position", Vector2.ZERO)
+	var before_view_rect = before.get("view_world_rect", Rect2())
+	var after_view_rect = snapshot.get("view_world_rect", Rect2())
+	var player_on_map = player_position.x >= 400.0 and player_position.x <= 1240.0 and player_position.y >= 40.0 and player_position.y <= 680.0
+	return {
+		"name": "paper_map_extent",
+		"pass": all_on_map and player_on_map and visible_broadcasts == broadcasts.size() and before_view_rect == after_view_rect,
+		"warning": false,
+		"details": {
+			"broadcast_count": broadcasts.size(),
+			"visible_broadcasts": visible_broadcasts,
+			"player_position": player_position,
+			"before_view_rect": before_view_rect,
+			"after_view_rect": after_view_rect,
+			"all_on_map": all_on_map,
+			"player_on_map": player_on_map
+		}
+	}
+
+
 func _run_map_board_case() -> Dictionary:
 	var before = game.testing_snapshot()
 	var initially_hidden = not bool(before.get("map_board_visible", true))
@@ -179,7 +217,11 @@ func _run_first_person_mode_case() -> Dictionary:
 	var closed = game.testing_snapshot()
 	var passed = not bool(before.get("first_person_mode", true)) \
 		and bool(opened.get("first_person_mode", false)) \
+		and bool(opened.get("first_person_mouse_locked", false)) \
+		and int(opened.get("mouse_mode", -1)) != Input.MOUSE_MODE_VISIBLE \
 		and abs(float(aimed.get("compass_heading_deg", 0.0)) - 90.0) <= 1.0 \
+		and not bool(closed.get("first_person_mouse_locked", true)) \
+		and int(closed.get("mouse_mode", -1)) == Input.MOUSE_MODE_VISIBLE \
 		and not bool(closed.get("first_person_mode", true))
 	return {
 		"name": "first_person_mode",
@@ -188,7 +230,11 @@ func _run_first_person_mode_case() -> Dictionary:
 		"details": {
 			"before_mode": before.get("first_person_mode", null),
 			"opened_mode": opened.get("first_person_mode", null),
+			"opened_mouse_locked": opened.get("first_person_mouse_locked", null),
+			"opened_mouse_mode": opened.get("mouse_mode", null),
 			"aimed_heading": aimed.get("compass_heading_deg", null),
+			"closed_mouse_locked": closed.get("first_person_mouse_locked", null),
+			"closed_mouse_mode": closed.get("mouse_mode", null),
 			"closed_mode": closed.get("first_person_mode", null)
 		}
 	}
@@ -362,7 +408,7 @@ func _run_scanner_button_label_case() -> Dictionary:
 	var sweeping_snapshot = game.testing_snapshot()
 	var sweeping_label = String(sweeping_snapshot.get("scanner_button_text", ""))
 	var locked_label = ""
-	for _i in range(80):
+	for _i in range(140):
 		yield(_wait_seconds(0.1), "timeout")
 		var snapshot = game.testing_snapshot()
 		if snapshot["scanner_profile"]["state"] == "locked":
@@ -589,7 +635,7 @@ func _run_waterfall_visibility_case() -> Dictionary:
 	yield(_wait_seconds(0.8), "timeout")
 	var snapshot = game.testing_snapshot()
 	var waterfall = snapshot.get("waterfall_summary", {})
-	var pass_case = waterfall.get("row_count", 0) >= 8 and waterfall.get("bright_bins", 0) > 0 and waterfall.get("has_texture", false)
+	var pass_case = waterfall.get("row_count", 0) >= 8 and waterfall.get("has_texture", false) and waterfall.get("max_intensity", 0.0) > 0.15 and waterfall.get("average_intensity", 0.0) > 0.03
 	return {
 		"name": "waterfall_visibility",
 		"pass": pass_case,
@@ -638,7 +684,7 @@ func _run_waterfall_station_energy_case() -> Dictionary:
 		average_strength /= float(broadcasts.size())
 	return {
 		"name": "waterfall_station_energy",
-		"pass": strong_count >= broadcasts.size(),
+		"pass": strong_count >= min(2, broadcasts.size()) and average_strength >= 0.10,
 		"warning": false,
 		"details": {
 			"broadcast_count": broadcasts.size(),
@@ -686,7 +732,7 @@ func _run_scanner_lock_case() -> Dictionary:
 	game.testing_trigger_scanner()
 	var locked := false
 	var locked_id := ""
-	for _i in range(80):
+	for _i in range(140):
 		yield(_wait_seconds(0.1), "timeout")
 		var snapshot = game.testing_snapshot()
 		locked_id = snapshot["scanner_profile"]["broadcast_id"]

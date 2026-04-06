@@ -22,6 +22,8 @@
 - Preferred checks for this repo:
   - `./testing/run_agent.sh`
   - `./run_demo.sh --quit`
+- For PR work, do not treat the branch as review-ready until the current GitHub PR checks have completed successfully.
+- If a stale failed check from an older head leaves the PR in a failed or unstable state, rerun or update the branch until the current head shows green checks.
 - Reviewable product changes should also include a small `VERSION` bump.
 - For feature, UI, or gameplay work intended for PR review, make sure the branch can produce a browser preview and include that live-build URL in the PR body.
 - Use the repo's preview URL conventions:
@@ -37,7 +39,7 @@
 
 - Do not stop at a partial implementation when the task can reasonably be carried through to review-ready state.
 - Continue working until one of these is true:
-  - the change is ready for human review with code, verification, and a PR
+  - the change is ready for human review with code, local verification, a PR, and green current PR checks
   - you hit a real blocker that cannot be resolved safely without user input
 - If the work touches GitHub state or automation, push the branch and open the PR instead of leaving the change only in the local workspace.
 - For reviewable feature work, "ready" means the PR includes a visible live preview link when the branch changes browser-playable behavior.

@@ -3,7 +3,10 @@ extends Node2D
 const WORLD_SIZE := Vector2(1280, 720)
 const PLAY_AREA := Rect2(Vector2(400, 40), Vector2(840, 640))
 const PLAYER_SPEED := 220.0
+const FIRST_PERSON_PLAYER_SPEED := 420.0
 const PLAYER_RADIUS := 10.0
+const WORLD_BOUNDS := PLAY_AREA
+const PLAYER_START := Vector2(520, 560)
 const BEARING_LENGTH := 2000.0
 const MAX_DISTANCE := 900.0
 const OVERLOAD_DISTANCE := 70.0
@@ -92,7 +95,7 @@ const BROADCAST_TEMPLATES := [
 ]
 const BROADCAST_BOUNDS := Rect2(Vector2(470, 90), Vector2(680, 520))
 
-var player_position := Vector2(520, 560)
+var player_position := PLAYER_START
 var fix_position = null
 var result_text := ""
 var show_target := false
@@ -101,6 +104,7 @@ var scope_samples := []
 var waterfall_rows := []
 var broadcasts := []
 var map_texture = null
+var map_image = null
 var waterfall_texture = null
 var first_person_viewport = null
 var first_person_world_root = null
@@ -119,6 +123,7 @@ var current_scanner_broadcast_id := ""
 var clean_monitor_enabled := false
 var map_board_visible := false
 var first_person_mode := false
+var first_person_mouse_locked := false
 var first_person_heading_deg := 90.0
 var df_frequency := 145.000
 var df_volume := 0.85
@@ -210,6 +215,7 @@ func _ready() -> void:
 	_sync_overlay_visibility()
 	_setup_first_person_view()
 	_setup_audio()
+	_set_first_person_mouse_lock(false)
 	set_process(true)
 	set_physics_process(true)
 	update()
@@ -217,13 +223,21 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var movement = Vector2.ZERO
-	movement.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	movement.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	if first_person_mode:
+		var forward_input = Input.get_action_strength("move_up") - Input.get_action_strength("move_down")
+		var strafe_input = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+		var forward = _get_aim_vector()
+		var right = Vector2(-forward.y, forward.x)
+		movement = forward * forward_input + right * strafe_input
+	else:
+		movement.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+		movement.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
 	if movement.length() > 1.0:
 		movement = movement.normalized()
-	player_position += movement * PLAYER_SPEED * delta
-	player_position.x = clamp(player_position.x, PLAY_AREA.position.x + PLAYER_RADIUS, PLAY_AREA.end.x - PLAYER_RADIUS)
-	player_position.y = clamp(player_position.y, PLAY_AREA.position.y + PLAYER_RADIUS, PLAY_AREA.end.y - PLAYER_RADIUS)
+	var movement_speed = FIRST_PERSON_PLAYER_SPEED if first_person_mode else PLAYER_SPEED
+	player_position += movement * movement_speed * delta
+	player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
+	player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
 	update()
 
 
@@ -277,7 +291,7 @@ func _input(event: InputEvent) -> void:
 			_tune_df_to_waterfall_click(event.position)
 			return
 		if not first_person_mode and PLAY_AREA.has_point(event.position):
-			fix_position = event.position
+			fix_position = _screen_to_world(event.position)
 			update()
 
 
@@ -286,15 +300,39 @@ func _dismiss_welcome_modal() -> void:
 		welcome_modal.visible = false
 
 
+func _view_world_rect() -> Rect2:
+	return PLAY_AREA
+
+
+func _world_to_screen(world_position: Vector2) -> Vector2:
+	return world_position
+
+
+func _screen_to_world(screen_position: Vector2) -> Vector2:
+	return screen_position
+
+
 func _toggle_first_person_mode() -> void:
 	first_person_mode = not first_person_mode
 	if first_person_mode:
 		first_person_heading_deg = _bearing_degrees(_get_aim_vector())
+		_set_first_person_mouse_lock(true)
 		result_text = "First-person can-antenna view enabled."
 	else:
+		_set_first_person_mouse_lock(false)
 		result_text = "Returned to top-down view."
 	_sync_first_person_visibility()
 	update()
+
+
+func _set_first_person_mouse_lock(locked: bool) -> void:
+	first_person_mouse_locked = locked
+	if locked:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+			Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+	else:
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 
 func _setup_first_person_view() -> void:
@@ -325,7 +363,7 @@ func _setup_first_person_view() -> void:
 
 	var ground_mesh = MeshInstance.new()
 	var ground_shape = CubeMesh.new()
-	ground_shape.size = Vector3(60.0, 0.1, 60.0)
+	ground_shape.size = Vector3(72.0, 0.1, 72.0)
 	ground_mesh.mesh = ground_shape
 	ground_mesh.translation = Vector3(0.0, -0.05, 0.0)
 	var ground_material = SpatialMaterial.new()
@@ -398,7 +436,8 @@ func _update_first_person_view() -> void:
 	if not first_person_mode:
 		return
 	var fp_position = _world_to_first_person(player_position)
-	first_person_camera.translation = Vector3(fp_position.x, FIRST_PERSON_CAMERA_HEIGHT, fp_position.z)
+	var terrain_height = (_sample_map_elevation(player_position) - 0.5) * 3.0
+	first_person_camera.translation = Vector3(fp_position.x, FIRST_PERSON_CAMERA_HEIGHT + terrain_height, fp_position.z)
 	var aim_vector = _get_aim_vector()
 	var forward = Vector3(aim_vector.x, 0.0, aim_vector.y)
 	first_person_camera.rotation = Vector3(0.0, atan2(-forward.x, -forward.z), 0.0)
@@ -423,12 +462,13 @@ func _rebuild_first_person_props() -> void:
 
 	for index in range(prop_positions.size()):
 		var source_position = prop_positions[index]
+		var terrain_height = (_sample_map_elevation(source_position) - 0.5) * 4.0
 		var trunk = MeshInstance.new()
 		var trunk_shape = CubeMesh.new()
 		trunk_shape.size = Vector3(0.34, 1.6 + float(index % 3) * 0.5, 0.34)
 		trunk.mesh = trunk_shape
 		var fp_position = _world_to_first_person(source_position)
-		trunk.translation = Vector3(fp_position.x, trunk_shape.size.y * 0.5, fp_position.z)
+		trunk.translation = Vector3(fp_position.x, terrain_height + trunk_shape.size.y * 0.5, fp_position.z)
 		var trunk_material = SpatialMaterial.new()
 		trunk_material.albedo_color = Color(0.25, 0.20, 0.14)
 		trunk.material_override = trunk_material
@@ -446,6 +486,47 @@ func _rebuild_first_person_props() -> void:
 		first_person_world_root.add_child(crown)
 		first_person_props.append(crown)
 
+	var hill_samples_x = 11
+	var hill_samples_y = 8
+	for sample_y in range(hill_samples_y):
+		for sample_x in range(hill_samples_x):
+			var world_position = Vector2(
+				lerp(PLAY_AREA.position.x + 24.0, PLAY_AREA.end.x - 24.0, float(sample_x) / float(max(hill_samples_x - 1, 1))),
+				lerp(PLAY_AREA.position.y + 24.0, PLAY_AREA.end.y - 24.0, float(sample_y) / float(max(hill_samples_y - 1, 1)))
+			)
+			var elevation = _sample_map_elevation(world_position)
+			var fp_world_position = _world_to_first_person(world_position)
+			var hill = MeshInstance.new()
+			var hill_shape = CubeMesh.new()
+			var terrain_bias = abs(elevation - 0.5) * 2.0
+			var hill_width = lerp(3.5, 10.0, terrain_bias)
+			var hill_depth = lerp(3.0, 9.0, terrain_bias)
+			var hill_height = lerp(0.3, 5.5, terrain_bias)
+			hill_shape.size = Vector3(hill_width, hill_height, hill_depth)
+			hill.mesh = hill_shape
+			var base_height = (elevation - 0.5) * 4.5
+			hill.translation = Vector3(fp_world_position.x, base_height + hill_height * 0.5 - 0.02, fp_world_position.z)
+			var hill_material = SpatialMaterial.new()
+			hill_material.albedo_color = Color(
+				lerp(0.22, 0.46, terrain_bias),
+				lerp(0.28, 0.41, terrain_bias),
+				lerp(0.16, 0.28, terrain_bias)
+			)
+			hill.material_override = hill_material
+			first_person_world_root.add_child(hill)
+			first_person_props.append(hill)
+			if terrain_bias > 0.48:
+				var ridge = MeshInstance.new()
+				var ridge_shape = CubeMesh.new()
+				ridge_shape.size = Vector3(hill_width * 0.6, hill_height * 0.55, hill_depth * 0.5)
+				ridge.mesh = ridge_shape
+				ridge.translation = hill.translation + Vector3(0.0, hill_height * 0.48, 0.0)
+				var ridge_material = SpatialMaterial.new()
+				ridge_material.albedo_color = Color(0.46, 0.45, 0.42)
+				ridge.material_override = ridge_material
+				first_person_world_root.add_child(ridge)
+				first_person_props.append(ridge)
+
 func _draw() -> void:
 	_draw_world()
 	_draw_bearings()
@@ -458,8 +539,9 @@ func _draw() -> void:
 		_draw_map_board()
 	if show_target:
 		var target = _get_target_broadcast()
-		draw_circle(target["position"], 8.0, Color(1.0, 0.45, 0.3))
-		draw_arc(target["position"], 18.0, 0.0, TAU, 24, Color(1.0, 0.77, 0.3), 2.0)
+		var target_screen = _world_to_screen(target["position"])
+		draw_circle(target_screen, 8.0, Color(1.0, 0.45, 0.3))
+		draw_arc(target_screen, 18.0, 0.0, TAU, 24, Color(1.0, 0.77, 0.3), 2.0)
 
 
 func _draw_world() -> void:
@@ -468,17 +550,14 @@ func _draw_world() -> void:
 	if map_texture != null:
 		draw_texture_rect(map_texture, PLAY_AREA, false, Color(0.96, 0.96, 0.93, 1.0))
 	draw_rect(PLAY_AREA, Color(0.20, 0.16, 0.10, 0.10), false, 2.0)
-	for x in range(int(PLAY_AREA.position.x), int(PLAY_AREA.end.x), 80):
-		draw_line(Vector2(x, PLAY_AREA.position.y), Vector2(x, PLAY_AREA.end.y), Color(0.33, 0.29, 0.18, 0.05), 1.0)
-	for y in range(int(PLAY_AREA.position.y), int(PLAY_AREA.end.y), 80):
-		draw_line(Vector2(PLAY_AREA.position.x, y), Vector2(PLAY_AREA.end.x, y), Color(0.33, 0.29, 0.18, 0.05), 1.0)
 
 
 func _draw_player() -> void:
 	var aim_vector = _get_aim_vector()
-	draw_circle(player_position, PLAYER_RADIUS, Color(0.38, 0.81, 0.95))
-	draw_line(player_position, player_position + aim_vector * 32.0, Color(0.98, 0.91, 0.46), 3.0)
-	draw_arc(player_position, 20.0, aim_vector.angle() - 0.45, aim_vector.angle() + 0.45, 16, Color(0.98, 0.91, 0.46, 0.4), 2.0)
+	var player_screen = _world_to_screen(player_position)
+	draw_circle(player_screen, PLAYER_RADIUS, Color(0.38, 0.81, 0.95))
+	draw_line(player_screen, player_screen + aim_vector * 32.0, Color(0.98, 0.91, 0.46), 3.0)
+	draw_arc(player_screen, 20.0, aim_vector.angle() - 0.45, aim_vector.angle() + 0.45, 16, Color(0.98, 0.91, 0.46, 0.4), 2.0)
 
 
 func _draw_compass() -> void:
@@ -620,8 +699,8 @@ func _draw_bearing_wedge(origin: Vector2, end_point: Vector2, quality: String) -
 
 
 func _map_board_point(world_position: Vector2) -> Vector2:
-	var ratio_x = clamp((world_position.x - PLAY_AREA.position.x) / PLAY_AREA.size.x, 0.0, 1.0)
-	var ratio_y = clamp((world_position.y - PLAY_AREA.position.y) / PLAY_AREA.size.y, 0.0, 1.0)
+	var ratio_x = clamp((world_position.x - WORLD_BOUNDS.position.x) / WORLD_BOUNDS.size.x, 0.0, 1.0)
+	var ratio_y = clamp((world_position.y - WORLD_BOUNDS.position.y) / WORLD_BOUNDS.size.y, 0.0, 1.0)
 	return Vector2(
 		MAP_BOARD_RECT.position.x + ratio_x * MAP_BOARD_RECT.size.x,
 		MAP_BOARD_RECT.position.y + ratio_y * MAP_BOARD_RECT.size.y
@@ -632,16 +711,16 @@ func _world_point_from_map_board(board_position: Vector2) -> Vector2:
 	var ratio_x = clamp((board_position.x - MAP_BOARD_RECT.position.x) / MAP_BOARD_RECT.size.x, 0.0, 1.0)
 	var ratio_y = clamp((board_position.y - MAP_BOARD_RECT.position.y) / MAP_BOARD_RECT.size.y, 0.0, 1.0)
 	return Vector2(
-		PLAY_AREA.position.x + ratio_x * PLAY_AREA.size.x,
-		PLAY_AREA.position.y + ratio_y * PLAY_AREA.size.y
+		WORLD_BOUNDS.position.x + ratio_x * WORLD_BOUNDS.size.x,
+		WORLD_BOUNDS.position.y + ratio_y * WORLD_BOUNDS.size.y
 	)
 
 
 func _world_to_first_person(world_position: Vector2) -> Vector3:
 	return Vector3(
-		(world_position.x - PLAY_AREA.position.x - PLAY_AREA.size.x * 0.5) * FIRST_PERSON_WORLD_SCALE,
+		(world_position.x - WORLD_BOUNDS.position.x - WORLD_BOUNDS.size.x * 0.5) * FIRST_PERSON_WORLD_SCALE,
 		0.0,
-		(world_position.y - PLAY_AREA.position.y - PLAY_AREA.size.y * 0.5) * FIRST_PERSON_WORLD_SCALE
+		(world_position.y - WORLD_BOUNDS.position.y - WORLD_BOUNDS.size.y * 0.5) * FIRST_PERSON_WORLD_SCALE
 	)
 
 
@@ -676,8 +755,8 @@ func _update_first_person_minimap() -> void:
 
 
 func _world_to_minimap_point(world_position: Vector2) -> Vector2:
-	var ratio_x = clamp((world_position.x - PLAY_AREA.position.x) / PLAY_AREA.size.x, 0.0, 1.0)
-	var ratio_y = clamp((world_position.y - PLAY_AREA.position.y) / PLAY_AREA.size.y, 0.0, 1.0)
+	var ratio_x = clamp((world_position.x - WORLD_BOUNDS.position.x) / WORLD_BOUNDS.size.x, 0.0, 1.0)
+	var ratio_y = clamp((world_position.y - WORLD_BOUNDS.position.y) / WORLD_BOUNDS.size.y, 0.0, 1.0)
 	return Vector2(
 		ratio_x * float(FIRST_PERSON_MINIMAP_SIZE - 1),
 		ratio_y * float(FIRST_PERSON_MINIMAP_SIZE - 1)
@@ -714,8 +793,8 @@ func _draw_bearings() -> void:
 	var font = _ui_font()
 	for index in range(bearings.size()):
 		var bearing = bearings[index]
-		var origin = bearing["origin"]
-		var end_point = bearing["origin"] + bearing["direction"] * BEARING_LENGTH
+		var origin = _world_to_screen(bearing["origin"])
+		var end_point = _world_to_screen(bearing["origin"] + bearing["direction"] * BEARING_LENGTH)
 		draw_circle(origin, 5.0, Color(0.91, 0.95, 1.0))
 		draw_arc(origin, 11.0, 0.0, TAU, 18, Color(0.66, 0.9, 1.0, 0.35), 1.0)
 		draw_line(origin, end_point, Color(0.66, 0.9, 1.0, 0.78), 2.0)
@@ -728,9 +807,10 @@ func _draw_fix_marker() -> void:
 	if fix_position == null:
 		return
 	var color = Color(0.96, 0.4, 0.4)
-	draw_line(fix_position + Vector2(-10, 0), fix_position + Vector2(10, 0), color, 3.0)
-	draw_line(fix_position + Vector2(0, -10), fix_position + Vector2(0, 10), color, 3.0)
-	draw_circle(fix_position, 12.0, Color(color.r, color.g, color.b, 0.1))
+	var fix_screen = _world_to_screen(fix_position)
+	draw_line(fix_screen + Vector2(-10, 0), fix_screen + Vector2(10, 0), color, 3.0)
+	draw_line(fix_screen + Vector2(0, -10), fix_screen + Vector2(0, 10), color, 3.0)
+	draw_circle(fix_screen, 12.0, Color(color.r, color.g, color.b, 0.1))
 
 
 func _draw_scope() -> void:
@@ -831,10 +911,11 @@ func _reset_hunt() -> void:
 	scanner_lock_strength = 0.0
 	current_scanner_broadcast_id = ""
 	waterfall_rows.clear()
-	player_position = Vector2(520, 560)
+	player_position = PLAYER_START
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
 	first_person_heading_deg = 90.0
+	_set_first_person_mouse_lock(false)
 	if df_frequency_slider != null:
 		df_frequency_slider.value = df_frequency
 	_sync_control_labels()
@@ -1129,9 +1210,26 @@ func _load_map_texture() -> void:
 	if err != OK:
 		push_error("Unable to load map image at %s" % WA_HILLSHADE_PATH)
 		return
+	map_image = image.duplicate()
+	map_image.lock()
 	var texture = ImageTexture.new()
 	texture.create_from_image(image, 0)
 	map_texture = texture
+
+
+func _sample_map_elevation(world_position: Vector2) -> float:
+	if map_image == null:
+		return 0.35
+	var width = map_image.get_width()
+	var height = map_image.get_height()
+	if width <= 1 or height <= 1:
+		return 0.35
+	var ratio_x = clamp((world_position.x - WORLD_BOUNDS.position.x) / WORLD_BOUNDS.size.x, 0.0, 1.0)
+	var ratio_y = clamp((world_position.y - WORLD_BOUNDS.position.y) / WORLD_BOUNDS.size.y, 0.0, 1.0)
+	var pixel_x = int(clamp(round(ratio_x * float(width - 1)), 0, width - 1))
+	var pixel_y = int(clamp(round(ratio_y * float(height - 1)), 0, height - 1))
+	var color = map_image.get_pixel(pixel_x, pixel_y)
+	return color.get_luminance()
 
 
 func _get_df_profile() -> Dictionary:
@@ -1323,7 +1421,7 @@ func _get_aim_vector() -> Vector2:
 	if first_person_mode:
 		var radians = deg2rad(first_person_heading_deg)
 		return Vector2(sin(radians), -cos(radians)).normalized()
-	var aim = get_viewport().get_mouse_position() - player_position
+	var aim = _screen_to_world(get_viewport().get_mouse_position()) - player_position
 	if aim.length() < 0.001:
 		return Vector2.RIGHT
 	return aim.normalized()
@@ -1861,6 +1959,9 @@ func testing_snapshot() -> Dictionary:
 		"scanner_button_text": scanner_button.text if scanner_button != null else "",
 		"training_step": training_step.duplicate(true),
 		"compass_heading_deg": _bearing_degrees(_get_aim_vector()),
+		"view_world_rect": _view_world_rect(),
+		"mouse_mode": Input.get_mouse_mode(),
+		"first_person_mouse_locked": first_person_mouse_locked,
 		"first_person_mode": first_person_mode,
 		"first_person_heading_deg": first_person_heading_deg,
 		"first_person_info_text": first_person_info.text if first_person_info != null else "",

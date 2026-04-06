@@ -5,11 +5,17 @@
 - Added `VERSION` as the source of truth for shipped release versions.
 - Changed GitHub release automation to publish versioned releases only when `VERSION` changes on `master` or `main`.
 - Added CI enforcement so product-facing PRs must bump `VERSION`.
+- Bumped project version to `0.4.1` for the first-person can-antenna mode expansion.
 - Added `docs/first-person-can-antenna-plan.md` describing the first-person DF architecture, phases, and integration plan.
 - Added a first vertical slice of a first-person can-antenna mode using a low-resolution 3D viewport inside the existing 2D game.
 - Added a first-person heading model, simple can-antenna view model, and tactical inset map that shows captured lines of bearing.
 - Added in-view first-person reading overlays for heading, DF frequency, last reading, and step prompt text.
 - Added regression cases covering first-person mode toggle behavior and first-person reading capture.
+- Changed first-person controls to Doom-style movement, with `WASD` moving relative to heading instead of map axes.
+- Restored the top-down hunt view to a fixed paper-map presentation so the whole mission area stays visible at once.
+- Added broader terrain cues to the first-person view using the Washington hillshade as a source for hills, ridges, and valleys.
+- Restored practical broadcaster spacing and audio range after the oversized-world experiment made the band too sparse from the player start.
+- Added a regression case that requires all broadcasters to remain on the visible paper map after reset.
 - Fixed DF/scanner shared-broadcast playback so both receivers stay sample-aligned on the same conversation.
 - Added a deterministic regression test for DF/scanner shared-broadcast sync.
 - Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.

@@ -81,10 +81,12 @@ The first-person can-antenna slice now exists as an alternate presentation mode:
 
 - `V` toggles first-person view
 - mouse motion rotates the first-person heading
+- `WASD` uses Doom-style movement in first person, relative to the current heading
 - the same DF simulation and bearing capture logic remain authoritative
 - a small tactical inset map records player position and captured LOBs while in first person
 - a compact in-view overlay shows heading, DF frequency, last reading, and the active prompt
 - the 3D view is intentionally low-resolution and simple to preserve a retro training feel
+- the overhead hunt still behaves like a fixed paper map, with the full exercise area visible at once
 
 The prototype now includes a lightweight training flow instead of only a static welcome panel:
 
