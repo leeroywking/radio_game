@@ -24,12 +24,12 @@ cleanup() {
 trap cleanup EXIT
 
 if git ls-remote --exit-code --heads origin "$PAGES_BRANCH" >/dev/null 2>&1; then
-  git clone --branch "$PAGES_BRANCH" --single-branch "$REMOTE_URL" "$WORK_DIR" >/dev/null 2>&1
+  git clone --branch "$PAGES_BRANCH" --single-branch "$REMOTE_URL" "$WORK_DIR"
 else
-  git clone --no-checkout "$REMOTE_URL" "$WORK_DIR" >/dev/null 2>&1
+  git clone --no-checkout "$REMOTE_URL" "$WORK_DIR"
   (
     cd "$WORK_DIR"
-    git switch --orphan "$PAGES_BRANCH" >/dev/null 2>&1
+    git switch --orphan "$PAGES_BRANCH"
     find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
   )
 fi
@@ -56,6 +56,6 @@ fi
 
   git config user.name "github-actions[bot]"
   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-  git commit -m "$COMMIT_MESSAGE" >/dev/null 2>&1
-  git push origin "$PAGES_BRANCH" >/dev/null 2>&1
+  git commit -m "$COMMIT_MESSAGE"
+  git push origin "HEAD:$PAGES_BRANCH"
 )
