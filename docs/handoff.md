@@ -20,6 +20,8 @@ The current build includes:
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
 - Step-by-step training prompts that update as the player progresses through identify, capture, plot, and submit
 - A visible lensatic-style compass overlay that continuously shows the current DF heading
+- An initial first-person can-antenna mode rendered through a low-resolution 3D viewport
+- A tactical inset map in first-person mode that shows player position and captured LOBs
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
 - Bearing capture now records azimuth and coaching text so players get explicit keep/retake guidance
@@ -85,6 +87,9 @@ The current build includes:
 - Training-and-visual guidance coverage
   The headless testing agent now checks tutorial-step progression, live compass heading, and labeled bearing-visual summaries.
 
+- First-person mode coverage
+  The headless testing agent now checks first-person mode toggle state and verifies heading continuity there.
+
 - `.github/workflows/ci.yml`
   GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, updates a rolling `prototype-latest` GitHub release, and publishes branch previews plus the default HTML5 build to GitHub Pages.
 
@@ -111,6 +116,7 @@ The current build includes:
 - Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
 - The map board is still not a full notebook workflow, but it is no longer just a zoomed view. It now supports direct fix placement on the board and shows bearings with azimuth notes and uncertainty wedges.
 - Reset now also resets DF tuning so a new run starts from a clean teaching state instead of inheriting the prior frequency.
+- First-person mode is a vertical slice, not a full replacement for the top-down workflow yet. It shares the simulation, but the environment dressing is intentionally minimal.
 
 ## Recommended next steps
 
@@ -118,6 +124,7 @@ The current build includes:
 2. Evolve the current fake-but-live waterfall into a truer receiver-band model or FFT-driven display.
 3. Add a stronger mission loop around identifying the target frequency before triangulation.
 4. Introduce terrain-aware attenuation only after the current interaction loop feels stable.
+5. Continue the first-person plan in `docs/first-person-can-antenna-plan.md`, especially the reading workflow and tactical/rural phases.
 
 ## Running the prototype
 

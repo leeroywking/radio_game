@@ -22,6 +22,7 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Map-board plotting aids including a north reference ring, bearing cards, uncertainty wedges, and board-side fix placement
 - Step-by-step training prompts that advance with the player’s progress
 - Lensatic-style compass overlay with live heading readout
+- Toggleable first-person can-antenna view rendered in-engine
 - Independent DF and scanner audio volume controls
 - Aim-quality feedback
 - Bearing coaching with azimuth readout and keep/retake guidance
@@ -76,6 +77,14 @@ The map board is now closer to a hand-plotting aid than a simple zoomed view:
 - Captured bearings are labeled in-world and on the map board so the shot location and angle stay visually linked
 - Left-clicking the board places the current estimated fix directly on the plotting surface
 
+The first-person can-antenna slice now exists as an alternate presentation mode:
+
+- `V` toggles first-person view
+- mouse motion rotates the first-person heading
+- the same DF simulation and bearing capture logic remain authoritative
+- a small tactical inset map records player position and captured LOBs while in first person
+- the 3D view is intentionally low-resolution and simple to preserve a retro training feel
+
 The prototype now includes a lightweight training flow instead of only a static welcome panel:
 
 - The welcome modal explains the purpose of the exercise briefly
@@ -97,6 +106,7 @@ The stated task for the player is:
 - `C`: toggle clean monitor
 - `F`: trigger scanner sweep or rescan
 - `M`: open or close the map board
+- `V`: toggle first-person can-antenna view
 
 ## Local launch
 

@@ -44,6 +44,7 @@ func _run() -> void:
 		yield(_run_welcome_modal_case(), "completed"),
 		yield(_run_map_board_case(), "completed"),
 		yield(_run_map_board_plotting_case(), "completed"),
+		yield(_run_first_person_mode_case(), "completed"),
 		yield(_run_training_step_progression_case(), "completed"),
 		yield(_run_compass_heading_case(), "completed"),
 		yield(_run_bearing_visuals_case(), "completed"),
@@ -159,6 +160,36 @@ func _run_map_board_plotting_case() -> Dictionary:
 		"pass": bool(snapshot.get("map_board_visible", false)) and bool(board.get("has_bearing_list", false)) and int(board.get("bearing_cards", 0)) >= 1 and int(board.get("wedge_count", 0)) >= 1 and bool(board.get("has_fix", false)),
 		"warning": false,
 		"details": board
+	}
+
+
+func _run_first_person_mode_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	var before = game.testing_snapshot()
+	game.testing_toggle_first_person()
+	yield(_wait_seconds(0.05), "timeout")
+	var opened = game.testing_snapshot()
+	game.testing_set_aim_direction(Vector2.RIGHT)
+	yield(_wait_seconds(0.05), "timeout")
+	var aimed = game.testing_snapshot()
+	game.testing_toggle_first_person()
+	yield(_wait_seconds(0.05), "timeout")
+	var closed = game.testing_snapshot()
+	var passed = not bool(before.get("first_person_mode", true)) \
+		and bool(opened.get("first_person_mode", false)) \
+		and abs(float(aimed.get("compass_heading_deg", 0.0)) - 90.0) <= 1.0 \
+		and not bool(closed.get("first_person_mode", true))
+	return {
+		"name": "first_person_mode",
+		"pass": passed,
+		"warning": false,
+		"details": {
+			"before_mode": before.get("first_person_mode", null),
+			"opened_mode": opened.get("first_person_mode", null),
+			"aimed_heading": aimed.get("compass_heading_deg", null),
+			"closed_mode": closed.get("first_person_mode", null)
+		}
 	}
 
 
