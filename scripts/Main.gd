@@ -4,11 +4,11 @@ const WORLD_SIZE := Vector2(1280, 720)
 const PLAY_AREA := Rect2(Vector2(400, 40), Vector2(840, 640))
 const PLAYER_SPEED := 220.0
 const PLAYER_RADIUS := 10.0
-const WORLD_BOUNDS := Rect2(Vector2.ZERO, Vector2(20160, 15360))
-const PLAYER_START := Vector2(WORLD_BOUNDS.size.x * 0.5, WORLD_BOUNDS.size.y * 0.5)
-const BEARING_LENGTH := 50000.0
-const MAX_DISTANCE := 6500.0
-const OVERLOAD_DISTANCE := 320.0
+const WORLD_BOUNDS := PLAY_AREA
+const PLAYER_START := Vector2(520, 560)
+const BEARING_LENGTH := 2000.0
+const MAX_DISTANCE := 900.0
+const OVERLOAD_DISTANCE := 70.0
 const SCOPE_RECT := Rect2(Vector2(32, 204), Vector2(322, 72))
 const WATERFALL_RECT := Rect2(Vector2(32, 324), Vector2(322, 92))
 const WATERFALL_LABEL_HEIGHT := 18.0
@@ -19,7 +19,7 @@ const COMPASS_CENTER := Vector2(1160, 618)
 const COMPASS_RADIUS := 66.0
 const FIRST_PERSON_VIEW_SIZE := Vector2(320, 180)
 const FIRST_PERSON_CAMERA_HEIGHT := 1.7
-const FIRST_PERSON_WORLD_SCALE := 0.0045
+const FIRST_PERSON_WORLD_SCALE := 0.03
 const FIRST_PERSON_MINIMAP_SIZE := 216
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
@@ -92,7 +92,7 @@ const BROADCAST_TEMPLATES := [
 		"position": Vector2(1030, 210)
 	}
 ]
-const BROADCAST_EDGE_MARGIN := 1200.0
+const BROADCAST_BOUNDS := Rect2(Vector2(470, 90), Vector2(680, 520))
 
 var player_position := PLAYER_START
 var fix_position = null
@@ -297,21 +297,15 @@ func _dismiss_welcome_modal() -> void:
 
 
 func _view_world_rect() -> Rect2:
-	var half_size = PLAY_AREA.size * 0.5
-	var origin = player_position - half_size
-	origin.x = clamp(origin.x, WORLD_BOUNDS.position.x, WORLD_BOUNDS.end.x - PLAY_AREA.size.x)
-	origin.y = clamp(origin.y, WORLD_BOUNDS.position.y, WORLD_BOUNDS.end.y - PLAY_AREA.size.y)
-	return Rect2(origin, PLAY_AREA.size)
+	return PLAY_AREA
 
 
 func _world_to_screen(world_position: Vector2) -> Vector2:
-	var view_rect = _view_world_rect()
-	return PLAY_AREA.position + (world_position - view_rect.position)
+	return world_position
 
 
 func _screen_to_world(screen_position: Vector2) -> Vector2:
-	var view_rect = _view_world_rect()
-	return view_rect.position + (screen_position - PLAY_AREA.position)
+	return screen_position
 
 
 func _toggle_first_person_mode() -> void:
@@ -353,7 +347,7 @@ func _setup_first_person_view() -> void:
 
 	var ground_mesh = MeshInstance.new()
 	var ground_shape = CubeMesh.new()
-	ground_shape.size = Vector3(180.0, 0.1, 180.0)
+	ground_shape.size = Vector3(72.0, 0.1, 72.0)
 	ground_mesh.mesh = ground_shape
 	ground_mesh.translation = Vector3(0.0, -0.05, 0.0)
 	var ground_material = SpatialMaterial.new()
@@ -426,7 +420,7 @@ func _update_first_person_view() -> void:
 	if not first_person_mode:
 		return
 	var fp_position = _world_to_first_person(player_position)
-	var terrain_height = _sample_map_elevation(player_position) * 0.9
+	var terrain_height = (_sample_map_elevation(player_position) - 0.5) * 3.0
 	first_person_camera.translation = Vector3(fp_position.x, FIRST_PERSON_CAMERA_HEIGHT + terrain_height, fp_position.z)
 	var aim_vector = _get_aim_vector()
 	var forward = Vector3(aim_vector.x, 0.0, aim_vector.y)
@@ -445,14 +439,14 @@ func _rebuild_first_person_props() -> void:
 	var prop_positions := []
 	for broadcast in broadcasts:
 		prop_positions.append(broadcast["position"])
-	prop_positions.append(PLAYER_START + Vector2(-2800.0, -2200.0))
-	prop_positions.append(PLAYER_START + Vector2(3200.0, -1800.0))
-	prop_positions.append(PLAYER_START + Vector2(-3600.0, 2600.0))
-	prop_positions.append(PLAYER_START + Vector2(2800.0, 3000.0))
+	prop_positions.append(Vector2(PLAY_AREA.position.x + 120.0, PLAY_AREA.position.y + 140.0))
+	prop_positions.append(Vector2(PLAY_AREA.end.x - 180.0, PLAY_AREA.end.y - 120.0))
+	prop_positions.append(Vector2(PLAY_AREA.position.x + 240.0, PLAY_AREA.end.y - 160.0))
+	prop_positions.append(Vector2(PLAY_AREA.end.x - 280.0, PLAY_AREA.position.y + 180.0))
 
 	for index in range(prop_positions.size()):
 		var source_position = prop_positions[index]
-		var terrain_height = _sample_map_elevation(source_position) * 1.4
+		var terrain_height = (_sample_map_elevation(source_position) - 0.5) * 4.0
 		var trunk = MeshInstance.new()
 		var trunk_shape = CubeMesh.new()
 		trunk_shape.size = Vector3(0.34, 1.6 + float(index % 3) * 0.5, 0.34)
@@ -476,34 +470,36 @@ func _rebuild_first_person_props() -> void:
 		first_person_world_root.add_child(crown)
 		first_person_props.append(crown)
 
-	var hill_samples_x = 7
-	var hill_samples_y = 5
+	var hill_samples_x = 11
+	var hill_samples_y = 8
 	for sample_y in range(hill_samples_y):
 		for sample_x in range(hill_samples_x):
 			var world_position = Vector2(
-				lerp(WORLD_BOUNDS.position.x + 800.0, WORLD_BOUNDS.end.x - 800.0, float(sample_x) / float(max(hill_samples_x - 1, 1))),
-				lerp(WORLD_BOUNDS.position.y + 800.0, WORLD_BOUNDS.end.y - 800.0, float(sample_y) / float(max(hill_samples_y - 1, 1)))
+				lerp(PLAY_AREA.position.x + 24.0, PLAY_AREA.end.x - 24.0, float(sample_x) / float(max(hill_samples_x - 1, 1))),
+				lerp(PLAY_AREA.position.y + 24.0, PLAY_AREA.end.y - 24.0, float(sample_y) / float(max(hill_samples_y - 1, 1)))
 			)
 			var elevation = _sample_map_elevation(world_position)
 			var fp_world_position = _world_to_first_person(world_position)
 			var hill = MeshInstance.new()
 			var hill_shape = CubeMesh.new()
-			var hill_width = lerp(6.0, 18.0, elevation)
-			var hill_depth = lerp(5.0, 15.0, elevation)
-			var hill_height = lerp(0.8, 7.0, elevation)
+			var terrain_bias = abs(elevation - 0.5) * 2.0
+			var hill_width = lerp(3.5, 10.0, terrain_bias)
+			var hill_depth = lerp(3.0, 9.0, terrain_bias)
+			var hill_height = lerp(0.3, 5.5, terrain_bias)
 			hill_shape.size = Vector3(hill_width, hill_height, hill_depth)
 			hill.mesh = hill_shape
-			hill.translation = Vector3(fp_world_position.x, hill_height * 0.5 - 0.02, fp_world_position.z)
+			var base_height = (elevation - 0.5) * 4.5
+			hill.translation = Vector3(fp_world_position.x, base_height + hill_height * 0.5 - 0.02, fp_world_position.z)
 			var hill_material = SpatialMaterial.new()
 			hill_material.albedo_color = Color(
-				lerp(0.25, 0.48, elevation),
-				lerp(0.30, 0.42, elevation),
-				lerp(0.18, 0.30, elevation)
+				lerp(0.22, 0.46, terrain_bias),
+				lerp(0.28, 0.41, terrain_bias),
+				lerp(0.16, 0.28, terrain_bias)
 			)
 			hill.material_override = hill_material
 			first_person_world_root.add_child(hill)
 			first_person_props.append(hill)
-			if elevation > 0.62:
+			if terrain_bias > 0.48:
 				var ridge = MeshInstance.new()
 				var ridge_shape = CubeMesh.new()
 				ridge_shape.size = Vector3(hill_width * 0.6, hill_height * 0.55, hill_depth * 0.5)
@@ -536,34 +532,8 @@ func _draw_world() -> void:
 	draw_rect(Rect2(Vector2.ZERO, WORLD_SIZE), Color(0.82, 0.83, 0.79))
 	draw_rect(PLAY_AREA, Color(0.88, 0.88, 0.86))
 	if map_texture != null:
-		var view_rect = _view_world_rect()
-		var image_size = map_texture.get_size()
-		var source_rect = Rect2(
-			Vector2(
-				(view_rect.position.x / WORLD_BOUNDS.size.x) * image_size.x,
-				(view_rect.position.y / WORLD_BOUNDS.size.y) * image_size.y
-			),
-			Vector2(
-				(view_rect.size.x / WORLD_BOUNDS.size.x) * image_size.x,
-				(view_rect.size.y / WORLD_BOUNDS.size.y) * image_size.y
-			)
-		)
-		draw_texture_rect_region(map_texture, PLAY_AREA, source_rect, Color(0.96, 0.96, 0.93, 1.0), false)
+		draw_texture_rect(map_texture, PLAY_AREA, false, Color(0.96, 0.96, 0.93, 1.0))
 	draw_rect(PLAY_AREA, Color(0.20, 0.16, 0.10, 0.10), false, 2.0)
-	var view_rect = _view_world_rect()
-	var grid_step = 400.0
-	var start_x = floor(view_rect.position.x / grid_step) * grid_step
-	var start_y = floor(view_rect.position.y / grid_step) * grid_step
-	var x = start_x
-	while x <= view_rect.end.x:
-		var screen_x = _world_to_screen(Vector2(x, view_rect.position.y)).x
-		draw_line(Vector2(screen_x, PLAY_AREA.position.y), Vector2(screen_x, PLAY_AREA.end.y), Color(0.33, 0.29, 0.18, 0.05), 1.0)
-		x += grid_step
-	var y = start_y
-	while y <= view_rect.end.y:
-		var screen_y = _world_to_screen(Vector2(view_rect.position.x, y)).y
-		draw_line(Vector2(PLAY_AREA.position.x, screen_y), Vector2(PLAY_AREA.end.x, screen_y), Color(0.33, 0.29, 0.18, 0.05), 1.0)
-		y += grid_step
 
 
 func _draw_player() -> void:
@@ -1784,29 +1754,25 @@ func _reset_broadcasts() -> void:
 
 
 func _random_broadcast_position(used_positions: Array) -> Vector2:
-	var spawn_bounds = Rect2(
-		Vector2(WORLD_BOUNDS.position.x + BROADCAST_EDGE_MARGIN, WORLD_BOUNDS.position.y + BROADCAST_EDGE_MARGIN),
-		Vector2(WORLD_BOUNDS.size.x - BROADCAST_EDGE_MARGIN * 2.0, WORLD_BOUNDS.size.y - BROADCAST_EDGE_MARGIN * 2.0)
-	)
 	var attempt = 0
 	while attempt < 40:
 		var candidate = Vector2(
-			rand_range(spawn_bounds.position.x, spawn_bounds.end.x),
-			rand_range(spawn_bounds.position.y, spawn_bounds.end.y)
+			rand_range(BROADCAST_BOUNDS.position.x, BROADCAST_BOUNDS.end.x),
+			rand_range(BROADCAST_BOUNDS.position.y, BROADCAST_BOUNDS.end.y)
 		)
 		var valid = true
 		for used in used_positions:
-			if candidate.distance_to(used) < 1800.0:
+			if candidate.distance_to(used) < 150.0:
 				valid = false
 				break
-		if candidate.distance_to(player_position) < 2600.0:
+		if candidate.distance_to(player_position) < 220.0:
 			valid = false
 		if valid:
 			return candidate
 		attempt += 1
 	return Vector2(
-		rand_range(spawn_bounds.position.x, spawn_bounds.end.x),
-		rand_range(spawn_bounds.position.y, spawn_bounds.end.y)
+		rand_range(BROADCAST_BOUNDS.position.x, BROADCAST_BOUNDS.end.x),
+		rand_range(BROADCAST_BOUNDS.position.y, BROADCAST_BOUNDS.end.y)
 	)
 
 

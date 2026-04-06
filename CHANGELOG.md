@@ -12,8 +12,10 @@
 - Added in-view first-person reading overlays for heading, DF frequency, last reading, and step prompt text.
 - Added regression cases covering first-person mode toggle behavior and first-person reading capture.
 - Changed first-person controls to Doom-style movement, with `WASD` moving relative to heading instead of map axes.
-- Expanded the hunt world to a much larger scrolling map window while keeping the visible overhead play area and player movement speed consistent.
+- Restored the top-down hunt view to a fixed paper-map presentation so the whole mission area stays visible at once.
 - Added broader terrain cues to the first-person view using the Washington hillshade as a source for hills, ridges, and valleys.
+- Restored practical broadcaster spacing and audio range after the oversized-world experiment made the band too sparse from the player start.
+- Added a regression case that requires all broadcasters to remain on the visible paper map after reset.
 - Fixed DF/scanner shared-broadcast playback so both receivers stay sample-aligned on the same conversation.
 - Added a deterministic regression test for DF/scanner shared-broadcast sync.
 - Added tracked `export_presets.cfg` for Linux, Windows, and HTML5 builds.

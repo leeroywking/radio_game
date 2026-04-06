@@ -42,6 +42,7 @@ func _run() -> void:
 
 	var cases = [
 		yield(_run_welcome_modal_case(), "completed"),
+		yield(_run_paper_map_extent_case(), "completed"),
 		yield(_run_map_board_case(), "completed"),
 		yield(_run_map_board_plotting_case(), "completed"),
 		yield(_run_first_person_mode_case(), "completed"),
@@ -112,6 +113,36 @@ func _run_welcome_modal_case() -> Dictionary:
 		"details": {
 			"initially_visible": initially_visible,
 			"dismissed": dismissed
+		}
+	}
+
+
+func _run_paper_map_extent_case() -> Dictionary:
+	game.testing_reset_hunt()
+	yield(_wait_seconds(0.05), "timeout")
+	var snapshot = game.testing_snapshot()
+	var broadcasts = snapshot.get("broadcasts", [])
+	var visible_broadcasts := 0
+	var all_on_map := true
+	for broadcast in broadcasts:
+		var position = broadcast.get("position", Vector2.ZERO)
+		var on_map = position.x >= 400.0 and position.x <= 1240.0 and position.y >= 40.0 and position.y <= 680.0
+		if on_map:
+			visible_broadcasts += 1
+		else:
+			all_on_map = false
+	var player_position = snapshot.get("player_position", Vector2.ZERO)
+	var player_on_map = player_position.x >= 400.0 and player_position.x <= 1240.0 and player_position.y >= 40.0 and player_position.y <= 680.0
+	return {
+		"name": "paper_map_extent",
+		"pass": all_on_map and player_on_map and visible_broadcasts == broadcasts.size(),
+		"warning": false,
+		"details": {
+			"broadcast_count": broadcasts.size(),
+			"visible_broadcasts": visible_broadcasts,
+			"player_position": player_position,
+			"all_on_map": all_on_map,
+			"player_on_map": player_on_map
 		}
 	}
 

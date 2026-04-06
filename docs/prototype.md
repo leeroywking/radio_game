@@ -86,7 +86,7 @@ The first-person can-antenna slice now exists as an alternate presentation mode:
 - a small tactical inset map records player position and captured LOBs while in first person
 - a compact in-view overlay shows heading, DF frequency, last reading, and the active prompt
 - the 3D view is intentionally low-resolution and simple to preserve a retro training feel
-- the overhead map is now a local scrolling window into a much larger world instead of showing the whole hunt area at once
+- the overhead hunt still behaves like a fixed paper map, with the full exercise area visible at once
 
 The prototype now includes a lightweight training flow instead of only a static welcome panel:
 
