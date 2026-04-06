@@ -58,6 +58,8 @@ timeout 3 ./run_demo.sh
   - default branch work: `https://leeroywking.github.io/radio_game/`
   - feature branch work: `https://leeroywking.github.io/radio_game/previews/<branch-name>/`
 - Do not ask for review on browser-facing feature work until the preview URL is present and the branch preview has had a chance to publish.
+- Do not ask for review until the current PR head has green GitHub checks.
+- If GitHub still shows a failure from an older head after a fix, rerun or update the branch so the latest head is visibly green before handoff.
 - In handoff messages, always spell out the PR state explicitly as `open` or `merged`, together with the PR number and URL.
 
 ## Current baseline

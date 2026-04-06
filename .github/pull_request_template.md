@@ -13,6 +13,7 @@
 - [ ] `./run_demo.sh --quit`
 - [ ] `./testing/run_agent.sh`
 - [ ] `./scripts/build_exports.sh`
+- [ ] Current GitHub PR checks are green on this head
 
 List the commands you actually ran and any relevant output notes.
 

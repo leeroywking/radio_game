@@ -58,6 +58,9 @@ The current build includes:
 8. PR state needs to be explicit in handoffs.
    Saying that work is "up" is not enough. Future agents should state whether the PR is open or already merged, with the PR number and URL.
 
+9. "Review-ready" includes green current PR checks.
+   Local verification is not enough on its own. Before handoff, the current PR head should show successful GitHub checks, or the agent should continue until that is true or report the concrete blocker.
+
 ## Current files to know
 
 - `scripts/Main.gd`
