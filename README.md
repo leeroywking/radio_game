@@ -21,6 +21,7 @@ Radio direction-finding training prototype built in Godot. The current gameplay 
 - Current version source of truth: [VERSION](./VERSION)
 - Architecture notes: [docs/architecture.md](/home/ein/projects/simple_game/docs/architecture.md)
 - Prototype scope: [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md)
+- 3D restart options: [docs/3d-restart-options.md](/home/ein/projects/simple_game/docs/3d-restart-options.md)
 - Distribution notes: [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md)
 
 ## Requirements
@@ -70,6 +71,7 @@ The test agent writes local runtime reports into `testing/reports/`, compares th
 - Audio discrimination between the real conversation and educational decoys
 - Bearing capture and fix submission
 - A startup welcome modal explaining the hunt flow
+- No active first-person mode right now; that path was intentionally removed for a clean 3D restart
 
 ## Releases And Downloads
 
@@ -104,6 +106,7 @@ See [CONTRIBUTING.md](/home/ein/projects/simple_game/CONTRIBUTING.md) for the re
 
 - Improve repo hardening and maintenance automation
 - Refine onboarding and user-facing training flow
+- Rebuild first-person mode from a clean terrain stack instead of extending the removed prototype
 - Push the fake-but-useful waterfall and RF simulation toward a more realistic model
 - Expand scenarios, terrain effects, and mission progression
 

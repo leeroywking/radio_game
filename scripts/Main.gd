@@ -3,7 +3,6 @@ extends Node2D
 const WORLD_SIZE := Vector2(1280, 720)
 const PLAY_AREA := Rect2(Vector2(400, 40), Vector2(840, 640))
 const PLAYER_SPEED := 220.0
-const FIRST_PERSON_PLAYER_SPEED := 420.0
 const PLAYER_RADIUS := 10.0
 const WORLD_BOUNDS := PLAY_AREA
 const PLAYER_START := Vector2(520, 560)
@@ -18,10 +17,6 @@ const MAP_BOARD_RING_CENTER := Vector2(194, 218)
 const MAP_BOARD_RING_RADIUS := 92.0
 const COMPASS_CENTER := Vector2(1160, 618)
 const COMPASS_RADIUS := 66.0
-const FIRST_PERSON_VIEW_SIZE := Vector2(320, 180)
-const FIRST_PERSON_CAMERA_HEIGHT := 1.7
-const FIRST_PERSON_WORLD_SCALE := 0.03
-const FIRST_PERSON_MINIMAP_SIZE := 216
 const WA_HILLSHADE_PATH := "res://assets/maps/wa_hillshade.png"
 const STATIC_WAV_PATH := "res://assets/audio/static_noise.wav"
 const SCANNER_MIN_FREQ := 144.000
@@ -106,12 +101,6 @@ var broadcasts := []
 var map_texture = null
 var map_image = null
 var waterfall_texture = null
-var first_person_viewport = null
-var first_person_world_root = null
-var first_person_camera = null
-var first_person_ground = null
-var first_person_props := []
-var first_person_minimap_texture = null
 
 var df_voice_player = null
 var df_noise_player = null
@@ -122,9 +111,6 @@ var current_scanner_broadcast_id := ""
 
 var clean_monitor_enabled := false
 var map_board_visible := false
-var first_person_mode := false
-var first_person_mouse_locked := false
-var first_person_heading_deg := 90.0
 var df_frequency := 145.000
 var df_volume := 0.85
 var scanner_volume := 0.70
@@ -183,12 +169,6 @@ onready var waterfall_display := $HUD/Root/Panel/WaterfallDisplay
 onready var map_board_overlay := $HUD/Root/MapBoardOverlay
 onready var map_board_status_label := $HUD/Root/MapBoardOverlay/MapBoardStatus
 onready var map_board_bearing_list := $HUD/Root/MapBoardOverlay/MapBoardBearingList
-onready var first_person_view := $HUD/Root/FirstPersonView
-onready var first_person_label := $HUD/Root/FirstPersonLabel
-onready var first_person_map := $HUD/Root/FirstPersonMap
-onready var first_person_map_label := $HUD/Root/FirstPersonMapLabel
-onready var first_person_info := $HUD/Root/FirstPersonInfo
-onready var first_person_prompt := $HUD/Root/FirstPersonPrompt
 
 
 func _ready() -> void:
@@ -213,9 +193,7 @@ func _ready() -> void:
 	scanner_volume_slider.value = scanner_volume * 100.0
 	_sync_control_labels()
 	_sync_overlay_visibility()
-	_setup_first_person_view()
 	_setup_audio()
-	_set_first_person_mouse_lock(false)
 	set_process(true)
 	set_physics_process(true)
 	update()
@@ -223,19 +201,11 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var movement = Vector2.ZERO
-	if first_person_mode:
-		var forward_input = Input.get_action_strength("move_up") - Input.get_action_strength("move_down")
-		var strafe_input = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-		var forward = _get_aim_vector()
-		var right = Vector2(-forward.y, forward.x)
-		movement = forward * forward_input + right * strafe_input
-	else:
-		movement.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-		movement.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	movement.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
+	movement.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
 	if movement.length() > 1.0:
 		movement = movement.normalized()
-	var movement_speed = FIRST_PERSON_PLAYER_SPEED if first_person_mode else PLAYER_SPEED
-	player_position += movement * movement_speed * delta
+	player_position += movement * PLAYER_SPEED * delta
 	player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
 	player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
 	update()
@@ -252,29 +222,22 @@ func _process(delta: float) -> void:
 	_push_scope_sample(receiver_profile)
 	_push_waterfall_row(delta)
 	_update_waterfall_texture()
-	_update_first_person_view()
 	_update_status()
 	update()
 
 
 func _input(event: InputEvent) -> void:
 	if welcome_modal != null and welcome_modal.visible:
-		if event.is_action_pressed("submit_fix") or event.is_action_pressed("capture_bearing") or event.is_action_pressed("toggle_scanner") or event.is_action_pressed("reset_hunt") or event.is_action_pressed("toggle_clean_monitor") or event.is_action_pressed("toggle_first_person"):
+		if event.is_action_pressed("submit_fix") or event.is_action_pressed("capture_bearing") or event.is_action_pressed("toggle_scanner") or event.is_action_pressed("reset_hunt") or event.is_action_pressed("toggle_clean_monitor"):
 			_dismiss_welcome_modal()
 			get_tree().set_input_as_handled()
 			return
-	if first_person_mode and event is InputEventMouseMotion:
-		first_person_heading_deg = fmod(first_person_heading_deg + event.relative.x * 0.18 + 360.0, 360.0)
-		update()
-		return
 	if event.is_action_pressed("capture_bearing"):
 		_capture_bearing()
 	elif event.is_action_pressed("submit_fix"):
 		_submit_fix()
 	elif event.is_action_pressed("reset_hunt"):
 		_reset_hunt()
-	elif event.is_action_pressed("toggle_first_person"):
-		_toggle_first_person_mode()
 	elif event.is_action_pressed("toggle_clean_monitor"):
 		_toggle_clean_monitor()
 	elif event.is_action_pressed("toggle_scanner"):
@@ -290,7 +253,7 @@ func _input(event: InputEvent) -> void:
 		if waterfall_display != null and waterfall_display.get_global_rect().has_point(event.position):
 			_tune_df_to_waterfall_click(event.position)
 			return
-		if not first_person_mode and PLAY_AREA.has_point(event.position):
+		if PLAY_AREA.has_point(event.position):
 			fix_position = _screen_to_world(event.position)
 			update()
 
@@ -311,221 +274,6 @@ func _world_to_screen(world_position: Vector2) -> Vector2:
 func _screen_to_world(screen_position: Vector2) -> Vector2:
 	return screen_position
 
-
-func _toggle_first_person_mode() -> void:
-	first_person_mode = not first_person_mode
-	if first_person_mode:
-		first_person_heading_deg = _bearing_degrees(_get_aim_vector())
-		_set_first_person_mouse_lock(true)
-		result_text = "First-person can-antenna view enabled."
-	else:
-		_set_first_person_mouse_lock(false)
-		result_text = "Returned to top-down view."
-	_sync_first_person_visibility()
-	update()
-
-
-func _set_first_person_mouse_lock(locked: bool) -> void:
-	first_person_mouse_locked = locked
-	if locked:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
-	else:
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-
-
-func _setup_first_person_view() -> void:
-	first_person_viewport = Viewport.new()
-	first_person_viewport.name = "FirstPersonViewport"
-	first_person_viewport.disable_3d = false
-	first_person_viewport.render_target_update_mode = Viewport.UPDATE_ALWAYS
-	first_person_viewport.render_target_v_flip = true
-	first_person_viewport.size = FIRST_PERSON_VIEW_SIZE
-	add_child(first_person_viewport)
-
-	first_person_world_root = Spatial.new()
-	first_person_viewport.add_child(first_person_world_root)
-
-	var environment = Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.57, 0.67, 0.79)
-	environment.ambient_light_color = Color(0.72, 0.75, 0.70)
-	environment.ambient_light_energy = 0.55
-	var world_environment = WorldEnvironment.new()
-	world_environment.environment = environment
-	first_person_world_root.add_child(world_environment)
-
-	var sun = DirectionalLight.new()
-	sun.light_energy = 0.85
-	sun.rotation_degrees = Vector3(-54.0, -38.0, 0.0)
-	first_person_world_root.add_child(sun)
-
-	var ground_mesh = MeshInstance.new()
-	var ground_shape = CubeMesh.new()
-	ground_shape.size = Vector3(72.0, 0.1, 72.0)
-	ground_mesh.mesh = ground_shape
-	ground_mesh.translation = Vector3(0.0, -0.05, 0.0)
-	var ground_material = SpatialMaterial.new()
-	ground_material.albedo_color = Color(0.32, 0.39, 0.24)
-	ground_material.flags_unshaded = false
-	ground_mesh.material_override = ground_material
-	first_person_world_root.add_child(ground_mesh)
-	first_person_ground = ground_mesh
-
-	first_person_camera = Camera.new()
-	first_person_camera.current = true
-	first_person_camera.fov = 78.0
-	first_person_camera.near = 0.05
-	first_person_camera.far = 200.0
-	first_person_world_root.add_child(first_person_camera)
-
-	var rig = Spatial.new()
-	rig.translation = Vector3(0.28, -0.22, -0.58)
-	first_person_camera.add_child(rig)
-
-	var can_mesh = MeshInstance.new()
-	var can_shape = CylinderMesh.new()
-	can_shape.top_radius = 0.08
-	can_shape.bottom_radius = 0.11
-	can_shape.height = 0.46
-	can_mesh.mesh = can_shape
-	can_mesh.rotation_degrees = Vector3(88.0, 0.0, -18.0)
-	can_mesh.translation = Vector3(0.0, -0.08, 0.0)
-	var can_material = SpatialMaterial.new()
-	can_material.albedo_color = Color(0.80, 0.81, 0.76)
-	can_material.metallic = 0.2
-	can_mesh.material_override = can_material
-	rig.add_child(can_mesh)
-
-	var handle_mesh = MeshInstance.new()
-	var handle_shape = CubeMesh.new()
-	handle_shape.size = Vector3(0.06, 0.18, 0.06)
-	handle_mesh.mesh = handle_shape
-	handle_mesh.translation = Vector3(-0.02, -0.18, 0.08)
-	var handle_material = SpatialMaterial.new()
-	handle_material.albedo_color = Color(0.18, 0.14, 0.10)
-	handle_mesh.material_override = handle_material
-	rig.add_child(handle_mesh)
-
-	if first_person_view != null:
-		first_person_view.texture = first_person_viewport.get_texture()
-	_rebuild_first_person_props()
-	_sync_first_person_visibility()
-
-
-func _sync_first_person_visibility() -> void:
-	var visible = first_person_mode
-	if first_person_view != null:
-		first_person_view.visible = visible
-	if first_person_label != null:
-		first_person_label.visible = visible
-	if first_person_map != null:
-		first_person_map.visible = visible
-	if first_person_map_label != null:
-		first_person_map_label.visible = visible
-	if first_person_info != null:
-		first_person_info.visible = visible
-	if first_person_prompt != null:
-		first_person_prompt.visible = visible
-
-
-func _update_first_person_view() -> void:
-	if first_person_viewport == null or first_person_camera == null:
-		return
-	if not first_person_mode:
-		return
-	var fp_position = _world_to_first_person(player_position)
-	var terrain_height = (_sample_map_elevation(player_position) - 0.5) * 3.0
-	first_person_camera.translation = Vector3(fp_position.x, FIRST_PERSON_CAMERA_HEIGHT + terrain_height, fp_position.z)
-	var aim_vector = _get_aim_vector()
-	var forward = Vector3(aim_vector.x, 0.0, aim_vector.y)
-	first_person_camera.rotation = Vector3(0.0, atan2(-forward.x, -forward.z), 0.0)
-	_update_first_person_minimap()
-
-
-func _rebuild_first_person_props() -> void:
-	if first_person_world_root == null:
-		return
-	for prop in first_person_props:
-		if is_instance_valid(prop):
-			prop.queue_free()
-	first_person_props.clear()
-
-	var prop_positions := []
-	for broadcast in broadcasts:
-		prop_positions.append(broadcast["position"])
-	prop_positions.append(Vector2(PLAY_AREA.position.x + 120.0, PLAY_AREA.position.y + 140.0))
-	prop_positions.append(Vector2(PLAY_AREA.end.x - 180.0, PLAY_AREA.end.y - 120.0))
-	prop_positions.append(Vector2(PLAY_AREA.position.x + 240.0, PLAY_AREA.end.y - 160.0))
-	prop_positions.append(Vector2(PLAY_AREA.end.x - 280.0, PLAY_AREA.position.y + 180.0))
-
-	for index in range(prop_positions.size()):
-		var source_position = prop_positions[index]
-		var terrain_height = (_sample_map_elevation(source_position) - 0.5) * 4.0
-		var trunk = MeshInstance.new()
-		var trunk_shape = CubeMesh.new()
-		trunk_shape.size = Vector3(0.34, 1.6 + float(index % 3) * 0.5, 0.34)
-		trunk.mesh = trunk_shape
-		var fp_position = _world_to_first_person(source_position)
-		trunk.translation = Vector3(fp_position.x, terrain_height + trunk_shape.size.y * 0.5, fp_position.z)
-		var trunk_material = SpatialMaterial.new()
-		trunk_material.albedo_color = Color(0.25, 0.20, 0.14)
-		trunk.material_override = trunk_material
-		first_person_world_root.add_child(trunk)
-		first_person_props.append(trunk)
-
-		var crown = MeshInstance.new()
-		var crown_shape = CubeMesh.new()
-		crown_shape.size = Vector3(1.4, 1.1, 1.4)
-		crown.mesh = crown_shape
-		crown.translation = trunk.translation + Vector3(0.0, trunk_shape.size.y * 0.5 + 0.7, 0.0)
-		var crown_material = SpatialMaterial.new()
-		crown_material.albedo_color = Color(0.22, 0.34, 0.20)
-		crown.material_override = crown_material
-		first_person_world_root.add_child(crown)
-		first_person_props.append(crown)
-
-	var hill_samples_x = 11
-	var hill_samples_y = 8
-	for sample_y in range(hill_samples_y):
-		for sample_x in range(hill_samples_x):
-			var world_position = Vector2(
-				lerp(PLAY_AREA.position.x + 24.0, PLAY_AREA.end.x - 24.0, float(sample_x) / float(max(hill_samples_x - 1, 1))),
-				lerp(PLAY_AREA.position.y + 24.0, PLAY_AREA.end.y - 24.0, float(sample_y) / float(max(hill_samples_y - 1, 1)))
-			)
-			var elevation = _sample_map_elevation(world_position)
-			var fp_world_position = _world_to_first_person(world_position)
-			var hill = MeshInstance.new()
-			var hill_shape = CubeMesh.new()
-			var terrain_bias = abs(elevation - 0.5) * 2.0
-			var hill_width = lerp(3.5, 10.0, terrain_bias)
-			var hill_depth = lerp(3.0, 9.0, terrain_bias)
-			var hill_height = lerp(0.3, 5.5, terrain_bias)
-			hill_shape.size = Vector3(hill_width, hill_height, hill_depth)
-			hill.mesh = hill_shape
-			var base_height = (elevation - 0.5) * 4.5
-			hill.translation = Vector3(fp_world_position.x, base_height + hill_height * 0.5 - 0.02, fp_world_position.z)
-			var hill_material = SpatialMaterial.new()
-			hill_material.albedo_color = Color(
-				lerp(0.22, 0.46, terrain_bias),
-				lerp(0.28, 0.41, terrain_bias),
-				lerp(0.16, 0.28, terrain_bias)
-			)
-			hill.material_override = hill_material
-			first_person_world_root.add_child(hill)
-			first_person_props.append(hill)
-			if terrain_bias > 0.48:
-				var ridge = MeshInstance.new()
-				var ridge_shape = CubeMesh.new()
-				ridge_shape.size = Vector3(hill_width * 0.6, hill_height * 0.55, hill_depth * 0.5)
-				ridge.mesh = ridge_shape
-				ridge.translation = hill.translation + Vector3(0.0, hill_height * 0.48, 0.0)
-				var ridge_material = SpatialMaterial.new()
-				ridge_material.albedo_color = Color(0.46, 0.45, 0.42)
-				ridge.material_override = ridge_material
-				first_person_world_root.add_child(ridge)
-				first_person_props.append(ridge)
 
 func _draw() -> void:
 	_draw_world()
@@ -716,79 +464,6 @@ func _world_point_from_map_board(board_position: Vector2) -> Vector2:
 	)
 
 
-func _world_to_first_person(world_position: Vector2) -> Vector3:
-	return Vector3(
-		(world_position.x - WORLD_BOUNDS.position.x - WORLD_BOUNDS.size.x * 0.5) * FIRST_PERSON_WORLD_SCALE,
-		0.0,
-		(world_position.y - WORLD_BOUNDS.position.y - WORLD_BOUNDS.size.y * 0.5) * FIRST_PERSON_WORLD_SCALE
-	)
-
-
-func _update_first_person_minimap() -> void:
-	if first_person_map == null:
-		return
-	var image = Image.new()
-	image.create(FIRST_PERSON_MINIMAP_SIZE, FIRST_PERSON_MINIMAP_SIZE, false, Image.FORMAT_RGBA8)
-	image.lock()
-	for y in range(FIRST_PERSON_MINIMAP_SIZE):
-		for x in range(FIRST_PERSON_MINIMAP_SIZE):
-			image.set_pixel(x, y, Color(0.07, 0.10, 0.10, 0.92))
-	for step in range(0, FIRST_PERSON_MINIMAP_SIZE, 36):
-		for x in range(FIRST_PERSON_MINIMAP_SIZE):
-			_set_image_pixel_safe(image, x, step, Color(0.28, 0.34, 0.30, 0.45))
-		for y in range(FIRST_PERSON_MINIMAP_SIZE):
-			_set_image_pixel_safe(image, step, y, Color(0.28, 0.34, 0.30, 0.45))
-	for bearing in bearings:
-		var origin = _world_to_minimap_point(bearing["origin"])
-		var end_point = _world_to_minimap_point(bearing["origin"] + bearing["direction"] * BEARING_LENGTH)
-		_draw_image_line(image, origin, end_point, Color(0.24, 0.72, 0.96, 0.92))
-		_draw_image_circle(image, origin, 3, Color(0.94, 0.98, 1.0, 1.0))
-	var player_marker = _world_to_minimap_point(player_position)
-	_draw_image_circle(image, player_marker, 4, Color(0.98, 0.92, 0.40, 1.0))
-	var heading_tip = player_marker + _get_aim_vector() * 16.0
-	_draw_image_line(image, player_marker, heading_tip, Color(0.98, 0.92, 0.40, 0.92))
-	image.unlock()
-	if first_person_minimap_texture == null:
-		first_person_minimap_texture = ImageTexture.new()
-	first_person_minimap_texture.create_from_image(image, 0)
-	first_person_map.texture = first_person_minimap_texture
-
-
-func _world_to_minimap_point(world_position: Vector2) -> Vector2:
-	var ratio_x = clamp((world_position.x - WORLD_BOUNDS.position.x) / WORLD_BOUNDS.size.x, 0.0, 1.0)
-	var ratio_y = clamp((world_position.y - WORLD_BOUNDS.position.y) / WORLD_BOUNDS.size.y, 0.0, 1.0)
-	return Vector2(
-		ratio_x * float(FIRST_PERSON_MINIMAP_SIZE - 1),
-		ratio_y * float(FIRST_PERSON_MINIMAP_SIZE - 1)
-	)
-
-
-func _draw_image_line(image: Image, from_point: Vector2, to_point: Vector2, color: Color) -> void:
-	var delta = to_point - from_point
-	var steps = int(max(abs(delta.x), abs(delta.y)))
-	if steps <= 0:
-		_set_image_pixel_safe(image, int(round(from_point.x)), int(round(from_point.y)), color)
-		return
-	for index in range(steps + 1):
-		var ratio = float(index) / float(steps)
-		var point = from_point.linear_interpolate(to_point, ratio)
-		_set_image_pixel_safe(image, int(round(point.x)), int(round(point.y)), color)
-
-
-func _draw_image_circle(image: Image, center: Vector2, radius: int, color: Color) -> void:
-	for y in range(-radius, radius + 1):
-		for x in range(-radius, radius + 1):
-			if x * x + y * y > radius * radius:
-				continue
-			_set_image_pixel_safe(image, int(round(center.x)) + x, int(round(center.y)) + y, color)
-
-
-func _set_image_pixel_safe(image: Image, x: int, y: int, color: Color) -> void:
-	if x < 0 or y < 0 or x >= FIRST_PERSON_MINIMAP_SIZE or y >= FIRST_PERSON_MINIMAP_SIZE:
-		return
-	image.set_pixel(x, y, color)
-
-
 func _draw_bearings() -> void:
 	var font = _ui_font()
 	for index in range(bearings.size()):
@@ -862,17 +537,14 @@ func _capture_bearing() -> void:
 		"broadcast_id": reading["broadcast_id"],
 		"quality": reading["quality"],
 		"azimuth_deg": azimuth_deg,
-		"capture_mode": "first_person" if first_person_mode else "top_down",
+		"capture_mode": "top_down",
 		"shot_number": shot_number,
 		"origin_separation": previous_separation,
 		"advice": advice
 	})
 	bearing_capture_audio_hold_timer = 0.35
 	bearing_capture_audio_hold_broadcast_id = reading["broadcast_id"]
-	if first_person_mode:
-		result_text = "Reading B%d %03d deg captured. %s" % [shot_number, int(round(azimuth_deg)) % 360, advice]
-	else:
-		result_text = "Bearing %03d deg captured. %s" % [int(round(azimuth_deg)) % 360, advice]
+	result_text = "Bearing %03d deg captured. %s" % [int(round(azimuth_deg)) % 360, advice]
 
 
 func _submit_fix() -> void:
@@ -898,7 +570,6 @@ func _reset_hunt() -> void:
 	show_target = false
 	fix_position = null
 	map_board_visible = false
-	first_person_mode = false
 	smoothed_voice_level = 0.0
 	smoothed_noise_level = 1.0
 	df_frequency = 145.000
@@ -914,13 +585,10 @@ func _reset_hunt() -> void:
 	player_position = PLAYER_START
 	_reset_broadcasts()
 	scanner_button.text = "Start Scan"
-	first_person_heading_deg = 90.0
-	_set_first_person_mouse_lock(false)
 	if df_frequency_slider != null:
 		df_frequency_slider.value = df_frequency
 	_sync_control_labels()
 	_sync_overlay_visibility()
-	_sync_first_person_visibility()
 
 
 func _update_status() -> void:
@@ -940,13 +608,10 @@ func _update_status() -> void:
 		scanner_text = "Scanner sweeping."
 	elif scanner_profile["state"] == "locked":
 		scanner_text = "Scanner locked."
-	var mode_text = "Mode: map"
-	if first_person_mode:
-		mode_text = "Mode: first-person can antenna"
 	var lines := [
 		"Purpose: identify target traffic, take bearings, and plot a fix.",
 		training_step["title"],
-		mode_text,
+		"Mode: map",
 		"DF: %.3f MHz" % df_frequency,
 		scanner_text,
 		"Bearings: %d" % bearings.size(),
@@ -957,19 +622,6 @@ func _update_status() -> void:
 		lines.append(result_text)
 	status_label.text = "\n".join(lines)
 	instructions_label.text = "%s\n%s" % [training_step["title"], training_step["detail"]]
-	if first_person_info != null:
-		var heading_text = "HDG %03d" % (int(round(_bearing_degrees(_get_aim_vector()))) % 360)
-		var last_reading_text = "No reading"
-		if not bearings.empty():
-			var last_bearing = bearings[bearings.size() - 1]
-			last_reading_text = "B%d %03d %s" % [
-				int(last_bearing.get("shot_number", bearings.size())),
-				int(round(float(last_bearing.get("azimuth_deg", 0.0)))) % 360,
-				String(last_bearing.get("quality", "poor")).capitalize()
-			]
-		first_person_info.text = "%s   DF %.3f MHz   %s" % [heading_text, df_frequency, last_reading_text]
-	if first_person_prompt != null:
-		first_person_prompt.text = training_step["detail"]
 	if map_board_status_label != null:
 		map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s | Plot N-up" % [df_frequency, bearings.size(), fix_text]
 	if map_board_bearing_list != null:
@@ -1418,9 +1070,6 @@ func _find_scanner_candidate(frequency: float) -> Dictionary:
 func _get_aim_vector() -> Vector2:
 	if testing_aim_override_enabled and testing_aim_direction.length() > 0.001:
 		return testing_aim_direction.normalized()
-	if first_person_mode:
-		var radians = deg2rad(first_person_heading_deg)
-		return Vector2(sin(radians), -cos(radians)).normalized()
 	var aim = _screen_to_world(get_viewport().get_mouse_position()) - player_position
 	if aim.length() < 0.001:
 		return Vector2.RIGHT
@@ -1459,12 +1108,6 @@ func _current_training_step() -> Dictionary:
 	var first_capture_detail = "Aim for the clearest heading, then press Space to mark a line of bearing."
 	var second_capture_title = "Step 3: Move and take a second bearing"
 	var second_capture_detail = "Walk to a new position before pressing Space again so the lines can cross."
-	if first_person_mode:
-		reading_word = "reading"
-		first_capture_title = "Step 2: Capture the first reading"
-		first_capture_detail = "Sweep with the can antenna, settle on the clearest heading, read the lensatic compass, then press Space for a reading."
-		second_capture_title = "Step 3: Move and take a second reading"
-		second_capture_detail = "Move to a new position, settle the antenna again, and take a second reading so the LOBs can cross."
 	if show_target:
 		return {
 			"id": "review_fix",
@@ -1767,7 +1410,6 @@ func _reset_broadcasts() -> void:
 		used_positions.append(broadcast["position"])
 		used_frequencies.append(broadcast["frequency"])
 		broadcasts.append(broadcast)
-	_rebuild_first_person_props()
 
 
 func _random_broadcast_position(used_positions: Array) -> Vector2:
@@ -1847,10 +1489,6 @@ func testing_set_aim_direction(direction: Vector2) -> void:
 		return
 	testing_aim_override_enabled = true
 	testing_aim_direction = direction.normalized()
-
-
-func testing_toggle_first_person() -> void:
-	_toggle_first_person_mode()
 
 
 func testing_clear_aim_override() -> void:
@@ -1961,11 +1599,6 @@ func testing_snapshot() -> Dictionary:
 		"compass_heading_deg": _bearing_degrees(_get_aim_vector()),
 		"view_world_rect": _view_world_rect(),
 		"mouse_mode": Input.get_mouse_mode(),
-		"first_person_mouse_locked": first_person_mouse_locked,
-		"first_person_mode": first_person_mode,
-		"first_person_heading_deg": first_person_heading_deg,
-		"first_person_info_text": first_person_info.text if first_person_info != null else "",
-		"first_person_prompt_text": first_person_prompt.text if first_person_prompt != null else "",
 		"last_bearing": last_bearing,
 		"broadcasts": testing_get_broadcasts(),
 		"waterfall_summary": waterfall_summary,

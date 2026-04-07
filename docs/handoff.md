@@ -20,16 +20,13 @@ The current build includes:
 - A strongly directional DF audio model intended to feel closer to a narrow improvised directional antenna
 - Step-by-step training prompts that update as the player progresses through identify, capture, plot, and submit
 - A visible lensatic-style compass overlay that continuously shows the current DF heading
-- An initial first-person can-antenna mode rendered through a low-resolution 3D viewport
-- A tactical inset map in first-person mode that shows player position and captured LOBs
-- First-person reading overlays that show live heading, DF frequency, last reading, and prompt text
-- First-person `WASD` now behaves Doom-style, moving relative to the viewing heading
 - The overhead hunt remains a fixed paper-map view, with the full mission area visible at once
 - A short DF-audio hold during bearing capture so `Space` does not cut playback
 - DF and scanner playback stay time-aligned when both receivers are monitoring the same broadcast
 - Bearing capture now records azimuth and coaching text so players get explicit keep/retake guidance
 - Bearing shots are labeled directly on the map and map board so each line of bearing is tied to a shot location and angle
 - Bearing capture, fix placement, and scoring
+- The prototype is intentionally back to a 2D-only training view while first-person mode is redesigned
 - A headless gameplay testing agent with comparison against the previous run
 
 ## Key learnings
@@ -60,6 +57,9 @@ The current build includes:
 
 9. "Review-ready" includes green current PR checks.
    Local verification is not enough on its own. Before handoff, the current PR head should show successful GitHub checks, or the agent should continue until that is true or report the concrete blocker.
+
+10. The first-person path should restart from a clean baseline.
+   The previous 3D attempts accumulated too many presentation hacks. The repo now removes that path entirely and documents replacement candidates in `docs/3d-restart-options.md`.
 
 ## Current files to know
 
@@ -96,8 +96,8 @@ The current build includes:
 - Training-and-visual guidance coverage
   The headless testing agent now checks tutorial-step progression, live compass heading, and labeled bearing-visual summaries.
 
-- First-person mode coverage
-  The headless testing agent now checks first-person mode toggle state, verifies heading continuity there, and validates first-person reading capture state.
+- `docs/3d-restart-options.md`
+  Framework survey and restart recommendation for the next first-person implementation.
 
 - `.github/workflows/ci.yml`
   GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, publishes versioned releases when `VERSION` changes, and publishes branch previews plus the default HTML5 build to GitHub Pages.
@@ -125,8 +125,7 @@ The current build includes:
 - Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
 - The map board is still not a full notebook workflow, but it is no longer just a zoomed view. It now supports direct fix placement on the board and shows bearings with azimuth notes and uncertainty wedges.
 - Reset now also resets DF tuning so a new run starts from a clean teaching state instead of inheriting the prior frequency.
-- First-person mode is a vertical slice, not a full replacement for the top-down workflow yet. It shares the simulation, but the environment dressing is intentionally minimal.
-- The world is substantially larger now, so some older test assumptions about uniformly strong station visibility had to be relaxed.
+- The current build is intentionally 2D-only again while the 3D restart is re-planned.
 
 ## Recommended next steps
 
@@ -134,7 +133,7 @@ The current build includes:
 2. Evolve the current fake-but-live waterfall into a truer receiver-band model or FFT-driven display.
 3. Add a stronger mission loop around identifying the target frequency before triangulation.
 4. Introduce terrain-aware attenuation only after the current interaction loop feels stable.
-5. Continue the first-person plan in `docs/first-person-can-antenna-plan.md`, especially the reading workflow and tactical/rural phases.
+5. Choose a terrain stack from `docs/3d-restart-options.md` before starting the next first-person branch.
 
 ## Running the prototype
 
