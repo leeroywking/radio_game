@@ -3,13 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # renovate: datasource=github-releases depName=godotengine/godot versioning=loose
-GODOT_RELEASE="3.5.3-stable"
-GODOT_BIN="$ROOT_DIR/tools/godot3/Godot_v${GODOT_RELEASE}_x11.64"
+GODOT_RELEASE="4.5.2-stable"
+GODOT_BIN="$ROOT_DIR/tools/godot4/Godot_v${GODOT_RELEASE}_linux.x86_64"
 GODOT_VERSION="${GODOT_RELEASE/-/.}"
-TEMPLATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/templates/$GODOT_VERSION"
+TEMPLATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates/$GODOT_VERSION"
 TEMPLATE_ARCHIVE="$ROOT_DIR/tools/export_templates/Godot_v${GODOT_RELEASE}_export_templates.tpz"
 TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
-TEMPLATE_SHA256="ae3c1f6fbd431b9e3b67c1f9e42539a6d270a0ccc35558f13072f04b968312d1"
+TEMPLATE_SHA512="003aa33743f58fb657717f090fc872ed3975e48d08a6012201a2259970d458a63d4d8a83090585307c23455ebfa4e6e0050e1057761c34863536095e3fcfab6c"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -18,10 +18,10 @@ require_cmd() {
   fi
 }
 
-verify_sha256() {
+verify_sha512() {
   local expected_sha="$1"
   local file_path="$2"
-  echo "$expected_sha  $file_path" | sha256sum --check --
+  echo "$expected_sha  $file_path" | sha512sum --check --
 }
 
 download_file() {
@@ -49,7 +49,8 @@ fi
 
 require_cmd unzip
 require_cmd zip
-require_cmd sha256sum
+require_cmd sha512sum
+require_cmd grep
 
 mkdir -p "$ROOT_DIR/dist/staging/linux" \
   "$ROOT_DIR/dist/staging/windows" \
@@ -64,7 +65,7 @@ if [[ ! -d "$TEMPLATE_DIR" ]]; then
     echo "Downloading Godot export templates..."
     download_file "$TEMPLATE_URL" "$TEMPLATE_ARCHIVE"
   fi
-  verify_sha256 "$TEMPLATE_SHA256" "$TEMPLATE_ARCHIVE"
+  verify_sha512 "$TEMPLATE_SHA512" "$TEMPLATE_ARCHIVE"
 
   rm -rf "$TEMPLATE_DIR"
   mkdir -p "$TEMPLATE_DIR"
@@ -89,13 +90,18 @@ rm -f \
   "$ROOT_DIR/dist/staging/html5/index.wasm"
 
 echo "Exporting Linux build..."
-"$GODOT_BIN" --path "$ROOT_DIR" --export "Linux/X11" "dist/staging/linux/RabbitHuntTrainer.x86_64"
+"$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Linux/X11" "dist/staging/linux/RabbitHuntTrainer.x86_64"
 
 echo "Exporting Windows build..."
-"$GODOT_BIN" --path "$ROOT_DIR" --export "Windows Desktop" "dist/staging/windows/RabbitHuntTrainer.exe"
+"$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Windows Desktop" "dist/staging/windows/RabbitHuntTrainer.exe"
 
 echo "Exporting HTML5 build..."
-"$GODOT_BIN" --path "$ROOT_DIR" --export "HTML5" "dist/staging/html5/index.html"
+"$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Web" "dist/staging/html5/index.html"
+
+if grep -q "libterrain\\|gdextensionLibs.*\\.wasm" "$ROOT_DIR/dist/staging/html5/index.html"; then
+  echo "Web export still references GDExtension libraries, which will break the live preview." >&2
+  exit 1
+fi
 
 (
   cd "$ROOT_DIR/dist/staging/linux"
