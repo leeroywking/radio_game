@@ -546,13 +546,16 @@ func _setup_audio() -> void:
 	for broadcast in BROADCAST_TEMPLATES:
 		audio_stream_cache[broadcast["id"]] = _load_loopable_stream(broadcast["path"], true)
 	df_voice_player = AudioStreamPlayer.new()
+	df_voice_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	df_voice_player.bus = "Master"
 	add_child(df_voice_player)
 	df_noise_player = AudioStreamPlayer.new()
+	df_noise_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	df_noise_player.stream = _load_loopable_stream(STATIC_WAV_PATH, true)
 	df_noise_player.bus = "Master"
 	add_child(df_noise_player)
 	scanner_voice_player = AudioStreamPlayer.new()
+	scanner_voice_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	scanner_voice_player.bus = "Master"
 	add_child(scanner_voice_player)
 	_prime_audio_output()
@@ -628,6 +631,7 @@ func _set_mouse_capture(enabled: bool) -> void:
 
 func _prime_audio_output() -> void:
 	audio_bootstrap_ready = true
+	_resume_web_audio_context()
 	if AudioServer.get_bus_count() > 0:
 		AudioServer.set_bus_mute(0, false)
 	if df_noise_player != null and df_noise_player.stream != null and not df_noise_player.playing:
@@ -1344,6 +1348,11 @@ func _update_player_stream(player: AudioStreamPlayer, desired_broadcast_id: Stri
 
 
 func _load_loopable_stream(path: String, should_loop: bool):
+	var imported = load(path)
+	if imported is AudioStream:
+		var duplicated: AudioStream = imported.duplicate()
+		_apply_loop_mode(duplicated, should_loop)
+		return duplicated
 	if path.to_lower().ends_with(".mp3"):
 		return _load_mp3_stream(path, should_loop)
 	if path.to_lower().ends_with(".wav"):
@@ -1357,7 +1366,7 @@ func _load_mp3_stream(path: String, should_loop: bool) -> AudioStream:
 		return AudioStreamMP3.new()
 	var stream := AudioStreamMP3.new()
 	stream.data = file.get_buffer(file.get_length())
-	stream.loop = should_loop
+	_apply_loop_mode(stream, should_loop)
 	return stream
 
 
@@ -1365,10 +1374,44 @@ func _load_wav_stream(path: String, should_loop: bool) -> AudioStream:
 	var imported = load(path)
 	if imported is AudioStreamWAV:
 		var stream: AudioStreamWAV = imported.duplicate()
-		if should_loop:
-			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		_apply_loop_mode(stream, should_loop)
 		return stream
 	return AudioStreamWAV.new()
+
+
+func _apply_loop_mode(stream: AudioStream, should_loop: bool) -> void:
+	if stream is AudioStreamMP3:
+		var mp3_stream: AudioStreamMP3 = stream
+		mp3_stream.loop = should_loop
+	elif stream is AudioStreamWAV:
+		var wav_stream: AudioStreamWAV = stream
+		wav_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if should_loop else AudioStreamWAV.LOOP_DISABLED
+
+
+func _resume_web_audio_context() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("""
+		(function () {
+			const candidates = [];
+			if (typeof godotAudioContext !== "undefined") candidates.push(godotAudioContext);
+			if (typeof Module !== "undefined") {
+				if (Module.godotAudioContext) candidates.push(Module.godotAudioContext);
+				if (Module.audioContext) candidates.push(Module.audioContext);
+			}
+			if (typeof window !== "undefined") {
+				if (window.godotAudioContext) candidates.push(window.godotAudioContext);
+				if (window.audioContext) candidates.push(window.audioContext);
+			}
+			for (const ctx of candidates) {
+				try {
+					if (ctx && ctx.state === "suspended" && typeof ctx.resume === "function") {
+						ctx.resume();
+					}
+				} catch (error) {}
+			}
+		})();
+	""", true)
 
 
 func _broadcast_gain_db(broadcast_id: String) -> float:
@@ -1636,12 +1679,15 @@ func testing_snapshot() -> Dictionary:
 		"current_scanner_broadcast_id": current_scanner_broadcast_id,
 		"df_voice_volume_db": df_voice_player.volume_db if df_voice_player != null else -80.0,
 		"df_voice_has_stream": df_voice_player != null and df_voice_player.stream != null,
+		"df_voice_playback_type": df_voice_player.playback_type if df_voice_player != null else -1,
 		"df_noise_volume_db": df_noise_player.volume_db if df_noise_player != null else -80.0,
 		"df_noise_has_stream": df_noise_player != null and df_noise_player.stream != null,
+		"df_noise_playback_type": df_noise_player.playback_type if df_noise_player != null else -1,
 		"df_stream_paused": not df_voice_player.playing if df_voice_player != null else true,
 		"df_noise_stream_paused": not df_noise_player.playing if df_noise_player != null else true,
 		"df_playback_position": df_voice_player.get_playback_position() if df_voice_player != null else 0.0,
 		"scanner_playback_position": scanner_voice_player.get_playback_position() if scanner_voice_player != null else 0.0,
+		"scanner_voice_playback_type": scanner_voice_player.playback_type if scanner_voice_player != null else -1,
 		"audio_bootstrap_ready": audio_bootstrap_ready,
 		"broadcasts": testing_get_broadcasts(),
 		"last_bearing": last_bearing,

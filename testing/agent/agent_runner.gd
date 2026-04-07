@@ -362,15 +362,21 @@ func _run_receiver_noise_bed_case() -> Dictionary:
 	await _wait_seconds(0.2).timeout
 	var snapshot = game.testing_snapshot()
 	var noise_db := float(snapshot.get("df_noise_volume_db", -80.0))
+	var df_noise_playback_type := int(snapshot.get("df_noise_playback_type", -1))
+	var df_voice_playback_type := int(snapshot.get("df_voice_playback_type", -1))
+	var scanner_voice_playback_type := int(snapshot.get("scanner_voice_playback_type", -1))
 	return {
 		"name": "receiver_noise_bed",
-		"pass": bool(snapshot.get("audio_bootstrap_ready", false)) and bool(snapshot.get("df_noise_has_stream", false)) and noise_db > -30.0,
+		"pass": bool(snapshot.get("audio_bootstrap_ready", false)) and bool(snapshot.get("df_noise_has_stream", false)) and noise_db > -30.0 and df_noise_playback_type == 1 and df_voice_playback_type == 1 and scanner_voice_playback_type == 1,
 		"warning": false,
 		"details": {
 			"audio_bootstrap_ready": snapshot.get("audio_bootstrap_ready", false),
 			"df_noise_has_stream": snapshot.get("df_noise_has_stream", false),
 			"df_noise_stream_paused": snapshot.get("df_noise_stream_paused", true),
-			"df_noise_volume_db": noise_db
+			"df_noise_volume_db": noise_db,
+			"df_noise_playback_type": df_noise_playback_type,
+			"df_voice_playback_type": df_voice_playback_type,
+			"scanner_voice_playback_type": scanner_voice_playback_type
 		}
 	}
 

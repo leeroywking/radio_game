@@ -10,7 +10,7 @@ The current build includes:
 - Terrain reconstruction is now driven by a profile-based image importer rather than only scene-local math
 - Terrain now uses a built-in mesh-and-collision backend instead of a native addon, so the browser preview can run without GDExtension support
 - The startup welcome modal is shortened and clipped so the Start Hunt button stays visible
-- The Godot 4 runtime now explicitly re-primes receiver audio on user interaction to better survive browser audio-gating behavior
+- The Godot 4 runtime now explicitly re-primes receiver audio on user interaction, forces stream playback on the receiver players, and prefers imported audio resources first to better survive browser audio-gating behavior
 - First-person movement now derives from the actual camera basis, so forward/back behavior and DF heading stay aligned
 - Tree scatter across the terrain view
 - Multiple simultaneous broadcasters with one designated as the real target conversation
@@ -80,7 +80,7 @@ The current build includes:
    The active branch now treats the imported play area as a `32 x 24 km` paper map with `1 km` grid squares, which keeps traversal and map plotting from feeling like a tiny sandbox.
 
 15. Browser audio needs an explicit resume path in the Godot 4 branch.
-   Even when streams and mix levels are correct, browser previews can stay silent until a user gesture re-primes playback. The current runtime now does that on modal dismissal and field clicks, and the test suite checks the bootstrap state plus noise-bed stream wiring.
+   Even when streams and mix levels are correct, browser previews can stay silent until a user gesture re-primes playback. The current runtime now does that on modal dismissal and field clicks, forces the DF/scanner players onto stream playback, prefers imported `AudioStream` resources over raw file reads, and the test suite checks both the bootstrap state and the explicit playback mode.
 
 ## Current files to know
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.8`.
+- Forced all receiver `AudioStreamPlayer` nodes to use stream playback in the Godot 4 runtime instead of leaving the web export on the default playback mode.
+- Changed runtime audio loading to prefer imported `AudioStream` resources first, with raw file decoding only as a fallback path.
+- Added a web-audio resume hook on first user interaction so browser previews can recover from suspended audio contexts more reliably.
+- Extended the receiver-noise regression case so CI now verifies the DF/scanner players are explicitly using playback type `Stream`.
 - Bumped project version to `0.4.7`.
 - Reflowed and shortened the welcome modal so the startup instructions no longer overlap the Start Hunt button.
 - Added explicit audio bootstrap/resume handling on user interaction in the Godot 4 runtime so browser and desktop builds re-prime the receiver audio path more reliably.
