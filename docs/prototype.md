@@ -22,7 +22,6 @@ It is not a full game. It is a proof of the key teaching interaction.
 - Map-board plotting aids including a north reference ring, bearing cards, uncertainty wedges, and board-side fix placement
 - Step-by-step training prompts that advance with the player’s progress
 - Lensatic-style compass overlay with live heading readout
-- Toggleable first-person can-antenna view rendered in-engine
 - Independent DF and scanner audio volume controls
 - Aim-quality feedback
 - Bearing coaching with azimuth readout and keep/retake guidance
@@ -77,16 +76,11 @@ The map board is now closer to a hand-plotting aid than a simple zoomed view:
 - Captured bearings are labeled in-world and on the map board so the shot location and angle stay visually linked
 - Left-clicking the board places the current estimated fix directly on the plotting surface
 
-The first-person can-antenna slice now exists as an alternate presentation mode:
+The previous first-person experiment has been removed.
 
-- `V` toggles first-person view
-- mouse motion rotates the first-person heading
-- `WASD` uses Doom-style movement in first person, relative to the current heading
-- the same DF simulation and bearing capture logic remain authoritative
-- a small tactical inset map records player position and captured LOBs while in first person
-- a compact in-view overlay shows heading, DF frequency, last reading, and the active prompt
-- the 3D view is intentionally low-resolution and simple to preserve a retro training feel
-- the overhead hunt still behaves like a fixed paper map, with the full exercise area visible at once
+- The current prototype is intentionally back to a 2D paper-map trainer only
+- A fresh 3D restart will happen from a clean baseline instead of extending the removed implementation
+- See `docs/3d-restart-options.md` for the new evaluation and restart plan
 
 The prototype now includes a lightweight training flow instead of only a static welcome panel:
 
@@ -109,7 +103,6 @@ The stated task for the player is:
 - `C`: toggle clean monitor
 - `F`: trigger scanner sweep or rescan
 - `M`: open or close the map board
-- `V`: toggle first-person can-antenna view
 
 ## Local launch
 
