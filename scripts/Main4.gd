@@ -313,12 +313,6 @@ func _setup_world_view() -> void:
 
 
 func _setup_terrain_world() -> void:
-	var extension_path := ProjectSettings.globalize_path("res://addons/terrain_3d/terrain.gdextension")
-	if not GDExtensionManager.is_extension_loaded(extension_path):
-		var load_status := GDExtensionManager.load_extension(extension_path)
-		if load_status != GDExtensionManager.LOAD_STATUS_OK and load_status != GDExtensionManager.LOAD_STATUS_ALREADY_LOADED:
-			push_error("Terrain3D extension failed to load. Status %s" % [load_status])
-			return
 	if not ClassDB.class_exists("Terrain3D"):
 		push_error("Terrain3D class is unavailable. Check the addon installation.")
 		return
@@ -331,17 +325,19 @@ func _setup_terrain_world() -> void:
 func _finalize_terrain_world() -> void:
 	if terrain == null:
 		return
-	terrain_material = ClassDB.instantiate("Terrain3DMaterial")
-	terrain_assets = ClassDB.instantiate("Terrain3DAssets")
-	terrain.material = terrain_material
-	terrain.assets = terrain_assets
-	terrain.material.world_background = 0
-	terrain.material.auto_shader = true
-	terrain.material.set_shader_param("auto_slope", 0.22)
-	terrain.material.set_shader_param("blend_sharpness", 0.88)
-	terrain.material.set_shader_param("dual_scale_far", 140.0)
-	terrain.material.set_shader_param("dual_scale_near", 72.0)
-	terrain.material.set_shader_param("world_noise_height", 22.0)
+	await get_tree().process_frame
+	terrain_material = terrain.material
+	terrain_assets = terrain.assets
+	if terrain_material == null or terrain_assets == null:
+		push_error("Terrain3D defaults were not ready after entering the scene tree.")
+		return
+	terrain_material.world_background = 0
+	terrain_material.auto_shader = true
+	terrain_material.set_shader_param("auto_slope", 0.22)
+	terrain_material.set_shader_param("blend_sharpness", 0.88)
+	terrain_material.set_shader_param("dual_scale_far", 140.0)
+	terrain_material.set_shader_param("dual_scale_near", 72.0)
+	terrain_material.set_shader_param("world_noise_height", 22.0)
 
 	_assign_texture_asset(0, "Valley Grass", Color(0.28, 0.38, 0.21), Color(0.34, 0.44, 0.25), 0.03)
 	_assign_texture_asset(1, "Forest Soil", Color(0.31, 0.24, 0.17), Color(0.39, 0.31, 0.22), 0.045)
