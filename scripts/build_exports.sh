@@ -95,7 +95,7 @@ echo "Exporting Windows build..."
 "$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Windows Desktop" "dist/staging/windows/RabbitHuntTrainer.exe"
 
 echo "Exporting HTML5 build..."
-"$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "HTML5" "dist/staging/html5/index.html"
+"$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Web" "dist/staging/html5/index.html"
 
 (
   cd "$ROOT_DIR/dist/staging/linux"
