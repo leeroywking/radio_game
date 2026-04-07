@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.6`.
+- Enlarged the first-person terrain footprint to a `32 x 24 km` imported map area so traversal no longer feels toy-sized.
+- Increased terrain grid resolution and terrain relief scaling for the larger Washington segment.
+- Rebuilt the map-board grid as a kilometer-based paper map with `1 km` lines, stronger `5 km` lines, and a `5 km` scale bar.
+- Upscaled tree geometry and density so vegetation reads closer to human and mountain scale.
+- Added terrain scale regression coverage so CI checks world footprint, crossing time, and tree sizing.
 - Bumped project version to `0.4.5`.
 - Added `scripts/TerrainImportModel.gd`, a profile-driven image terrain importer with `hillshade_reconstruction` and first-pass `contour_reconstruction` modes.
 - Switched the active first-person terrain branch to a named Washington hillshade import profile instead of embedding the terrain reconstruction logic directly in the scene script.

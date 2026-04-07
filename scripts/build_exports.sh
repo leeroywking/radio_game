@@ -78,16 +78,12 @@ if [[ -d "$TEMPLATE_DIR/templates" ]]; then
   rmdir "$TEMPLATE_DIR/templates"
 fi
 
-rm -f \
-  "$ROOT_DIR/dist/staging/linux/RabbitHuntTrainer.x86_64" \
-  "$ROOT_DIR/dist/staging/linux/RabbitHuntTrainer.pck" \
-  "$ROOT_DIR/dist/staging/windows/RabbitHuntTrainer.exe" \
-  "$ROOT_DIR/dist/staging/windows/RabbitHuntTrainer.pck" \
-  "$ROOT_DIR/dist/staging/html5/index.html" \
-  "$ROOT_DIR/dist/staging/html5/index.js" \
-  "$ROOT_DIR/dist/staging/html5/index.pck" \
-  "$ROOT_DIR/dist/staging/html5/index.png" \
-  "$ROOT_DIR/dist/staging/html5/index.wasm"
+find "$ROOT_DIR/dist/staging/linux" -mindepth 1 -maxdepth 1 -delete
+find "$ROOT_DIR/dist/staging/windows" -mindepth 1 -maxdepth 1 -delete
+find "$ROOT_DIR/dist/staging/html5" -mindepth 1 -maxdepth 1 -delete
+find "$ROOT_DIR/dist/releases" -mindepth 1 -maxdepth 1 -delete
+find "$ROOT_DIR/dist/itch/downloads" -mindepth 1 -maxdepth 1 -delete
+find "$ROOT_DIR/dist/itch/html5" -mindepth 1 -maxdepth 1 -delete
 
 echo "Exporting Linux build..."
 "$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Linux/X11" "dist/staging/linux/RabbitHuntTrainer.x86_64"

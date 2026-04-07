@@ -25,15 +25,22 @@ const TUNE_WINDOW := 0.012
 const TARGET_BROADCAST_ID := "real_conversation"
 const WATERFALL_BINS := 72
 const WATERFALL_HISTORY := 36
-const TERRAIN_SIZE := Vector2(1536.0, 1536.0)
-const TERRAIN_HEIGHT_SCALE := 560.0
-const TERRAIN_HEIGHT_OFFSET := -180.0
-const TERRAIN_GRID_RESOLUTION := 128
+const MAP_WORLD_SIZE_KM := Vector2(32.0, 24.0)
+const MAP_GRID_MINOR_KM := 1
+const MAP_GRID_MAJOR_KM := 5
+const METERS_PER_KM := 1000.0
+const TERRAIN_SIZE := Vector2(MAP_WORLD_SIZE_KM.x * METERS_PER_KM, MAP_WORLD_SIZE_KM.y * METERS_PER_KM)
+const TERRAIN_HEIGHT_SCALE := 720.0
+const TERRAIN_HEIGHT_OFFSET := -220.0
+const TERRAIN_GRID_RESOLUTION := 192
 const PLAYER_MOVE_SPEED := 240.0
 const PLAYER_EYE_HEIGHT := 1.7
 const PLAYER_LOOK_SENSITIVITY := 0.0054
-const TREE_COUNT := 260
-const TREE_LINE_ALTITUDE := 180.0
+const TREE_COUNT := 4200
+const TREE_LINE_ALTITUDE := 150.0
+const TREE_TRUNK_HEIGHT := 9.5
+const TREE_CROWN_RADIUS := 4.8
+const TREE_CROWN_HEIGHT := 10.2
 const TERRAIN_IMPORT_PROFILE := {
 	"id": "wa_hillshade_demo",
 	"label": "WA Hillshade Demo",
@@ -316,7 +323,7 @@ func _setup_world_view() -> void:
 	player_camera.current = true
 	player_camera.fov = 74.0
 	player_camera.near = 0.05
-	player_camera.far = 8192.0
+	player_camera.far = 26000.0
 	player_camera.position = Vector3(0.0, PLAYER_EYE_HEIGHT, 0.0)
 	player_camera_pitch.add_child(player_camera)
 
@@ -370,7 +377,9 @@ func _build_heightfield(profile: Dictionary) -> void:
 		"profile_label": String(import_result.get("profile", {}).get("label", "")),
 		"mode": String(import_result.get("profile", {}).get("mode", "")),
 		"source_path": String(import_result.get("profile", {}).get("source_path", "")),
-		"size": int(import_result.get("size", TERRAIN_GRID_RESOLUTION))
+		"size": int(import_result.get("size", TERRAIN_GRID_RESOLUTION)),
+		"world_size_km": MAP_WORLD_SIZE_KM,
+		"world_size_m": TERRAIN_SIZE
 	}
 
 
@@ -478,9 +487,10 @@ func _scatter_trees() -> void:
 	world_root.add_child(tree_crowns)
 
 	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.top_radius = 0.22
-	trunk_mesh.bottom_radius = 0.28
-	trunk_mesh.height = 3.6
+	trunk_mesh.top_radius = 0.34
+	trunk_mesh.bottom_radius = 0.46
+	trunk_mesh.height = TREE_TRUNK_HEIGHT
+	trunk_mesh.radial_segments = 6
 	var trunk_material := StandardMaterial3D.new()
 	trunk_material.albedo_color = Color(0.32, 0.23, 0.15)
 	tree_trunks.multimesh = MultiMesh.new()
@@ -489,8 +499,10 @@ func _scatter_trees() -> void:
 	trunk_mesh.material = trunk_material
 
 	var crown_mesh := SphereMesh.new()
-	crown_mesh.radius = 1.8
-	crown_mesh.height = 4.2
+	crown_mesh.radius = TREE_CROWN_RADIUS
+	crown_mesh.height = TREE_CROWN_HEIGHT
+	crown_mesh.radial_segments = 8
+	crown_mesh.rings = 5
 	var crown_material := StandardMaterial3D.new()
 	crown_material.albedo_color = Color(0.18, 0.31, 0.18)
 	tree_crowns.multimesh = MultiMesh.new()
@@ -503,7 +515,7 @@ func _scatter_trees() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var attempts := 0
-	while trunk_transforms.size() < TREE_COUNT and attempts < TREE_COUNT * 12:
+	while trunk_transforms.size() < TREE_COUNT and attempts < TREE_COUNT * 14:
 		attempts += 1
 		var x := rng.randf_range(-TERRAIN_SIZE.x * 0.48, TERRAIN_SIZE.x * 0.48)
 		var z := rng.randf_range(-TERRAIN_SIZE.y * 0.48, TERRAIN_SIZE.y * 0.48)
@@ -512,14 +524,14 @@ func _scatter_trees() -> void:
 			continue
 		if height > TREE_LINE_ALTITUDE:
 			continue
-		if abs(x) < 80.0 and abs(z) < 80.0:
+		if abs(x) < 180.0 and abs(z) < 180.0:
 			continue
 		var yaw := rng.randf_range(0.0, TAU)
-		var scale := rng.randf_range(0.85, 1.55)
+		var scale := rng.randf_range(0.92, 1.75)
 		var trunk_basis := Basis().rotated(Vector3.UP, yaw).scaled(Vector3(scale, scale, scale))
 		var crown_basis := Basis().rotated(Vector3.UP, yaw).scaled(Vector3(scale, scale * 1.18, scale))
-		trunk_transforms.append(Transform3D(trunk_basis, Vector3(x, height + 1.8 * scale, z)))
-		crown_transforms.append(Transform3D(crown_basis, Vector3(x, height + 5.0 * scale, z)))
+		trunk_transforms.append(Transform3D(trunk_basis, Vector3(x, height + TREE_TRUNK_HEIGHT * 0.5 * scale, z)))
+		crown_transforms.append(Transform3D(crown_basis, Vector3(x, height + (TREE_TRUNK_HEIGHT + TREE_CROWN_RADIUS * 0.9) * scale, z)))
 
 	tree_count_actual = trunk_transforms.size()
 	tree_trunks.multimesh.instance_count = tree_count_actual
@@ -810,17 +822,50 @@ func _draw_map_board() -> void:
 
 func _draw_map_board_grid() -> void:
 	var font = _ui_font()
-	for i in range(1, 4):
-		var ratio = i / 4.0
-		var x = lerp(MAP_BOARD_RECT.position.x, MAP_BOARD_RECT.end.x, ratio)
-		var y = lerp(MAP_BOARD_RECT.position.y, MAP_BOARD_RECT.end.y, ratio)
-		draw_line(Vector2(x, MAP_BOARD_RECT.position.y), Vector2(x, MAP_BOARD_RECT.end.y), Color(0.25, 0.19, 0.12, 0.12), 1.0)
-		draw_line(Vector2(MAP_BOARD_RECT.position.x, y), Vector2(MAP_BOARD_RECT.end.x, y), Color(0.25, 0.19, 0.12, 0.12), 1.0)
+	for km_x in range(0, int(MAP_WORLD_SIZE_KM.x) + 1, MAP_GRID_MINOR_KM):
+		var ratio_x := float(km_x) / MAP_WORLD_SIZE_KM.x
+		var x: float = lerpf(MAP_BOARD_RECT.position.x, MAP_BOARD_RECT.end.x, ratio_x)
+		var major_x := km_x % MAP_GRID_MAJOR_KM == 0
+		draw_line(
+			Vector2(x, MAP_BOARD_RECT.position.y),
+			Vector2(x, MAP_BOARD_RECT.end.y),
+			Color(0.25, 0.19, 0.12, 0.18 if major_x else 0.08),
+			1.6 if major_x else 1.0
+		)
+		if font != null and km_x < int(MAP_WORLD_SIZE_KM.x) and major_x:
+			draw_string(font, Vector2(x + 4.0, MAP_BOARD_RECT.end.y - 10.0), "%02dE" % km_x, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.18, 0.13, 0.08, 0.92))
+	for km_y in range(0, int(MAP_WORLD_SIZE_KM.y) + 1, MAP_GRID_MINOR_KM):
+		var ratio_y := float(km_y) / MAP_WORLD_SIZE_KM.y
+		var y: float = lerpf(MAP_BOARD_RECT.position.y, MAP_BOARD_RECT.end.y, ratio_y)
+		var major_y := km_y % MAP_GRID_MAJOR_KM == 0
+		draw_line(
+			Vector2(MAP_BOARD_RECT.position.x, y),
+			Vector2(MAP_BOARD_RECT.end.x, y),
+			Color(0.25, 0.19, 0.12, 0.18 if major_y else 0.08),
+			1.6 if major_y else 1.0
+		)
+		if font != null and km_y < int(MAP_WORLD_SIZE_KM.y) and major_y:
+			var northing := int(MAP_WORLD_SIZE_KM.y) - km_y
+			draw_string(font, Vector2(MAP_BOARD_RECT.position.x + 6.0, y - 4.0), "%02dN" % northing, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.18, 0.13, 0.08, 0.92))
+	_draw_scale_bar(font)
 	var north_arrow = MAP_BOARD_RECT.position + Vector2(MAP_BOARD_RECT.size.x - 32.0, 22.0)
 	draw_line(north_arrow + Vector2(0, 26), north_arrow + Vector2(0, -10), Color(0.15, 0.12, 0.08), 3.0)
 	draw_colored_polygon(PackedVector2Array([north_arrow + Vector2(0, -18), north_arrow + Vector2(-8, -2), north_arrow + Vector2(8, -2)]), Color(0.88, 0.26, 0.20))
 	if font != null:
 		draw_string(font, north_arrow + Vector2(-6, 42), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.15, 0.12, 0.08))
+
+
+func _draw_scale_bar(font) -> void:
+	var bar_origin := MAP_BOARD_RECT.position + Vector2(16.0, MAP_BOARD_RECT.size.y - 24.0)
+	var one_km_width := MAP_BOARD_RECT.size.x / MAP_WORLD_SIZE_KM.x
+	var bar_width := one_km_width * 5.0
+	draw_rect(Rect2(bar_origin, Vector2(bar_width, 8.0)), Color(0.14, 0.12, 0.08, 0.16))
+	draw_rect(Rect2(bar_origin, Vector2(bar_width * 0.5, 8.0)), Color(0.12, 0.11, 0.08, 0.45))
+	draw_rect(Rect2(bar_origin, Vector2(bar_width, 8.0)), Color(0.14, 0.12, 0.08, 0.92), false, 1.0)
+	if font != null:
+		draw_string(font, bar_origin + Vector2(0.0, -4.0), "0", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.14, 0.12, 0.08))
+		draw_string(font, bar_origin + Vector2(bar_width * 0.5 - 10.0, -4.0), "2.5", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.14, 0.12, 0.08))
+		draw_string(font, bar_origin + Vector2(bar_width - 18.0, -4.0), "5 km", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.14, 0.12, 0.08))
 
 
 func _draw_map_board_reference_ring() -> void:
@@ -1013,6 +1058,7 @@ func _update_status() -> void:
 		training_step["title"],
 		"Mode: first-person terrain",
 		"Terrain import: %s" % String(terrain_import_metadata.get("profile_label", "Unknown")),
+		"Map extent: %.0f x %.0f km | Grid 1 km" % [MAP_WORLD_SIZE_KM.x, MAP_WORLD_SIZE_KM.y],
 		"DF: %.3f MHz" % df_frequency,
 		scanner_text,
 		"Bearings: %d" % bearings.size(),
@@ -1023,7 +1069,7 @@ func _update_status() -> void:
 		lines.append(result_text)
 	status_label.text = "\n".join(lines)
 	instructions_label.text = "%s\n%s" % [training_step["title"], training_step["detail"]]
-	map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s | Plot N-up" % [df_frequency, bearings.size(), fix_text]
+	map_board_status_label.text = "DF %.3f MHz | Bearings %d | %s | %.0f x %.0f km map | Plot N-up" % [df_frequency, bearings.size(), fix_text, MAP_WORLD_SIZE_KM.x, MAP_WORLD_SIZE_KM.y]
 	map_board_bearing_list.text = _map_board_bearing_summary()
 
 
@@ -1576,6 +1622,15 @@ func testing_snapshot() -> Dictionary:
 		"terrain_height_min": terrain_height_min,
 		"terrain_height_max": terrain_height_max,
 		"tree_count": tree_count_actual,
+		"terrain_world_size_km": MAP_WORLD_SIZE_KM,
+		"terrain_world_size_m": TERRAIN_SIZE,
+		"player_move_speed_mps": PLAYER_MOVE_SPEED,
+		"estimated_crossing_seconds": TERRAIN_SIZE.x / PLAYER_MOVE_SPEED,
+		"tree_profile": {
+			"trunk_height": TREE_TRUNK_HEIGHT,
+			"crown_radius": TREE_CROWN_RADIUS,
+			"crown_height": TREE_CROWN_HEIGHT
+		},
 		"player_world_position": player_body.global_position if player_body != null else Vector3.ZERO,
 		"compass_heading_deg": _bearing_degrees(_get_aim_vector()),
 		"training_step": _current_training_step(),
