@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.7`.
+- Reflowed and shortened the welcome modal so the startup instructions no longer overlap the Start Hunt button.
+- Added explicit audio bootstrap/resume handling on user interaction in the Godot 4 runtime so browser and desktop builds re-prime the receiver audio path more reliably.
+- Added regression coverage for welcome-modal layout geometry and receiver noise-bed bootstrap state.
 - Bumped project version to `0.4.6`.
 - Enlarged the first-person terrain footprint to a `32 x 24 km` imported map area so traversal no longer feels toy-sized.
 - Increased terrain grid resolution and terrain relief scaling for the larger Washington segment.

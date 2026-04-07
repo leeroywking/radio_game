@@ -176,6 +176,7 @@ var tree_count_actual := 0
 var mouse_capture_active := false
 var player_yaw := 0.0
 var player_pitch := -0.08
+var audio_bootstrap_ready := false
 
 var world_container: SubViewportContainer = null
 var world_viewport: SubViewport = null
@@ -235,7 +236,7 @@ func _ready() -> void:
 
 
 func _setup_ui() -> void:
-	welcome_body.text = "Purpose: learn to identify the real conversation, take clean bearings, and plot a usable fix.\n\nThis migration slice now uses a full first-person terrain view.\n\nCore controls:\n- Click in the field view to capture the mouse\n- WASD move across terrain\n- Mouse looks the can-antenna heading\n- Type a frequency, drag the DF slider, or click the waterfall to tune\n- Space captures a bearing\n- M opens the map board\n- Esc releases the mouse"
+	welcome_body.text = "Mission: find the real conversation, take bearings, and plot a fix.\n\nStep 1:\nIgnore the educational traffic and identify the real voice.\n\nControls:\n- Click the field view to enable audio\n- WASD move, mouse look\n- Tune by typing, slider, or waterfall\n- Space captures a bearing"
 	welcome_button.pressed.connect(_dismiss_welcome_modal)
 	submit_button.pressed.connect(_submit_fix)
 	reset_button.pressed.connect(_reset_hunt)
@@ -545,15 +546,16 @@ func _setup_audio() -> void:
 	for broadcast in BROADCAST_TEMPLATES:
 		audio_stream_cache[broadcast["id"]] = _load_loopable_stream(broadcast["path"], true)
 	df_voice_player = AudioStreamPlayer.new()
+	df_voice_player.bus = "Master"
 	add_child(df_voice_player)
 	df_noise_player = AudioStreamPlayer.new()
 	df_noise_player.stream = _load_loopable_stream(STATIC_WAV_PATH, true)
+	df_noise_player.bus = "Master"
 	add_child(df_noise_player)
 	scanner_voice_player = AudioStreamPlayer.new()
+	scanner_voice_player.bus = "Master"
 	add_child(scanner_voice_player)
-	df_voice_player.play()
-	df_noise_player.play()
-	scanner_voice_player.play()
+	_prime_audio_output()
 
 
 func _process(delta: float) -> void:
@@ -577,7 +579,10 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if welcome_modal.visible:
 		if event is InputEventMouseButton and event.pressed:
+			_prime_audio_output()
 			return
+	if event is InputEventKey and event.pressed and not event.echo:
+		_prime_audio_output()
 	if event is InputEventMouseMotion and mouse_capture_active:
 		player_yaw -= event.relative.x * PLAYER_LOOK_SENSITIVITY
 		player_pitch = clamp(player_pitch - event.relative.y * PLAYER_LOOK_SENSITIVITY * 0.7, deg_to_rad(-70.0), deg_to_rad(70.0))
@@ -600,6 +605,7 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_map_board"):
 		_toggle_map_board()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_prime_audio_output()
 		if map_board_visible and MAP_BOARD_RECT.has_point(event.position):
 			fix_position = _world_point_from_map_board(event.position)
 			fix_placed = true
@@ -616,6 +622,20 @@ func _input(event: InputEvent) -> void:
 func _set_mouse_capture(enabled: bool) -> void:
 	mouse_capture_active = enabled and not map_board_visible and not welcome_modal.visible
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if mouse_capture_active else Input.MOUSE_MODE_VISIBLE)
+	if mouse_capture_active:
+		_prime_audio_output()
+
+
+func _prime_audio_output() -> void:
+	audio_bootstrap_ready = true
+	if AudioServer.get_bus_count() > 0:
+		AudioServer.set_bus_mute(0, false)
+	if df_noise_player != null and df_noise_player.stream != null and not df_noise_player.playing:
+		df_noise_player.play()
+	if df_voice_player != null and df_voice_player.stream != null and not df_voice_player.playing:
+		df_voice_player.play()
+	if scanner_voice_player != null and scanner_voice_player.stream != null and not scanner_voice_player.playing:
+		scanner_voice_player.play()
 
 
 func _apply_camera_rotation() -> void:
@@ -716,6 +736,7 @@ func _load_map_texture() -> void:
 
 func _dismiss_welcome_modal() -> void:
 	welcome_modal.visible = false
+	_prime_audio_output()
 	_set_mouse_capture(false)
 
 
@@ -1297,6 +1318,7 @@ func _unlock_scanner() -> void:
 func _update_audio_mix(reading: Dictionary) -> void:
 	if df_voice_player == null:
 		return
+	_prime_audio_output()
 	_update_player_stream(df_voice_player, reading["broadcast_id"], current_df_broadcast_id)
 	current_df_broadcast_id = reading["broadcast_id"]
 	_update_player_stream(scanner_voice_player, scanner_profile["broadcast_id"], current_scanner_broadcast_id)
@@ -1306,6 +1328,8 @@ func _update_audio_mix(reading: Dictionary) -> void:
 	df_voice_player.volume_db = voice_db
 	df_noise_player.volume_db = _scaled_volume_db(-6.0, noise_mix)
 	scanner_voice_player.volume_db = _scaled_volume_db(_broadcast_gain_db(scanner_profile["broadcast_id"]) - 1.5, scanner_profile["voice_level"] * scanner_volume)
+	if df_noise_player.stream != null and not df_noise_player.playing:
+		df_noise_player.play()
 
 
 func _update_player_stream(player: AudioStreamPlayer, desired_broadcast_id: String, current_broadcast_id: String) -> void:
@@ -1611,9 +1635,14 @@ func testing_snapshot() -> Dictionary:
 		"current_df_broadcast_id": current_df_broadcast_id,
 		"current_scanner_broadcast_id": current_scanner_broadcast_id,
 		"df_voice_volume_db": df_voice_player.volume_db if df_voice_player != null else -80.0,
+		"df_voice_has_stream": df_voice_player != null and df_voice_player.stream != null,
+		"df_noise_volume_db": df_noise_player.volume_db if df_noise_player != null else -80.0,
+		"df_noise_has_stream": df_noise_player != null and df_noise_player.stream != null,
 		"df_stream_paused": not df_voice_player.playing if df_voice_player != null else true,
+		"df_noise_stream_paused": not df_noise_player.playing if df_noise_player != null else true,
 		"df_playback_position": df_voice_player.get_playback_position() if df_voice_player != null else 0.0,
 		"scanner_playback_position": scanner_voice_player.get_playback_position() if scanner_voice_player != null else 0.0,
+		"audio_bootstrap_ready": audio_bootstrap_ready,
 		"broadcasts": testing_get_broadcasts(),
 		"last_bearing": last_bearing,
 		"terrain_ready": terrain_ready,

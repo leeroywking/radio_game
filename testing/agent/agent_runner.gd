@@ -38,6 +38,7 @@ func _run() -> void:
 
 	var cases: Array = []
 	cases.append(await _run_startup_modal_case())
+	cases.append(await _run_welcome_modal_layout_case())
 	cases.append(await _run_terrain_bootstrap_case())
 	cases.append(await _run_terrain_import_profile_case())
 	cases.append(await _run_terrain_scale_case())
@@ -48,6 +49,7 @@ func _run() -> void:
 	cases.append(await _run_scanner_lock_case())
 	cases.append(await _run_bearing_capture_case())
 	cases.append(await _run_map_board_fix_case())
+	cases.append(await _run_receiver_noise_bed_case())
 	cases.append(await _run_df_audio_case())
 
 	var pass_count := 0
@@ -89,6 +91,30 @@ func _run_startup_modal_case() -> Dictionary:
 		"details": {
 			"initially_visible": initially_visible,
 			"dismissed": not bool(after.get("welcome_modal_visible", true))
+		}
+	}
+
+
+func _run_welcome_modal_layout_case() -> Dictionary:
+	var panel: Control = game.get_node("HUD/Root/WelcomeModal/WelcomePanel")
+	var body: Label = game.get_node("HUD/Root/WelcomeModal/WelcomePanel/WelcomeBody")
+	var hint: Label = game.get_node("HUD/Root/WelcomeModal/WelcomePanel/WelcomeHint")
+	var button: Button = game.get_node("HUD/Root/WelcomeModal/WelcomePanel/WelcomeButton")
+	var body_rect := body.get_global_rect()
+	var hint_rect := hint.get_global_rect()
+	var button_rect := button.get_global_rect()
+	var panel_rect := panel.get_global_rect()
+	return {
+		"name": "welcome_modal_layout",
+		"pass": body_rect.end.y <= hint_rect.position.y and hint_rect.end.y <= button_rect.position.y and button_rect.end.y <= panel_rect.end.y - 8.0,
+		"warning": false,
+		"details": {
+			"body_bottom": body_rect.end.y,
+			"hint_top": hint_rect.position.y,
+			"hint_bottom": hint_rect.end.y,
+			"button_top": button_rect.position.y,
+			"button_bottom": button_rect.end.y,
+			"panel_bottom": panel_rect.end.y
 		}
 	}
 
@@ -326,6 +352,25 @@ func _run_df_audio_case() -> Dictionary:
 			"receiver_profile": receiver,
 			"df_voice_volume_db": df_volume_db,
 			"df_stream_paused": snapshot.get("df_stream_paused", true)
+		}
+	}
+
+
+func _run_receiver_noise_bed_case() -> Dictionary:
+	game.testing_reset_hunt()
+	game.testing_dismiss_welcome_modal()
+	await _wait_seconds(0.2).timeout
+	var snapshot = game.testing_snapshot()
+	var noise_db := float(snapshot.get("df_noise_volume_db", -80.0))
+	return {
+		"name": "receiver_noise_bed",
+		"pass": bool(snapshot.get("audio_bootstrap_ready", false)) and bool(snapshot.get("df_noise_has_stream", false)) and noise_db > -30.0,
+		"warning": false,
+		"details": {
+			"audio_bootstrap_ready": snapshot.get("audio_bootstrap_ready", false),
+			"df_noise_has_stream": snapshot.get("df_noise_has_stream", false),
+			"df_noise_stream_paused": snapshot.get("df_noise_stream_paused", true),
+			"df_noise_volume_db": noise_db
 		}
 	}
 

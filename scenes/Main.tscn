@@ -24,39 +24,42 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -270.0
-offset_top = -170.0
-offset_right = 270.0
-offset_bottom = 170.0
+offset_left = -300.0
+offset_top = -210.0
+offset_right = 300.0
+offset_bottom = 210.0
 
 [node name="WelcomeTitle" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
 offset_left = 24.0
 offset_top = 20.0
-offset_right = 516.0
-offset_bottom = 48.0
+offset_right = 576.0
+offset_bottom = 52.0
 text = "Welcome To Rabbit Hunt Trainer"
 
 [node name="WelcomeBody" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
 offset_left = 24.0
 offset_top = 58.0
-offset_right = 516.0
-offset_bottom = 250.0
-text = "Purpose: learn to identify the real conversation, take clean bearings, and plot a usable fix.\n\nStep 1 starts after you close this panel:\nFind the real conversation and ignore the educational traffic.\n\nCore controls:\n- WASD move\n- Mouse aims the DF antenna\n- Type a frequency, drag the DF slider, or click the waterfall to tune\n- Space captures a bearing\n- M opens the map board"
+offset_right = 576.0
+offset_bottom = 300.0
+text = "Mission: find the real conversation, take bearings, and plot a fix.\n\nStep 1:\nIgnore the educational traffic and identify the real voice.\n\nControls:\n- Click the field view to enable audio\n- WASD move, mouse look\n- Tune by typing, slider, or waterfall\n- Space captures a bearing"
 autowrap = true
+clip_text = true
 
 [node name="WelcomeHint" type="Label" parent="HUD/Root/WelcomeModal/WelcomePanel"]
 offset_left = 24.0
-offset_top = 258.0
-offset_right = 516.0
-offset_bottom = 280.0
-text = "The live training step in the HUD will update as you make progress."
+offset_top = 324.0
+offset_right = 576.0
+offset_bottom = 364.0
+text = "Click Start Hunt. The HUD will walk you through the next step."
+autowrap = true
+clip_text = true
 align = 1
 
 [node name="WelcomeButton" type="Button" parent="HUD/Root/WelcomeModal/WelcomePanel"]
-offset_left = 196.0
-offset_top = 292.0
-offset_right = 344.0
-offset_bottom = 320.0
+offset_left = 226.0
+offset_top = 376.0
+offset_right = 374.0
+offset_bottom = 408.0
 text = "Start Hunt"
 
 [node name="Panel" type="Panel" parent="HUD/Root"]
