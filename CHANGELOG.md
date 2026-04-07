@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Replaced the web-incompatible Terrain3D addon path with a built-in Godot 4 terrain mesh plus collision backend.
+- Removed the bundled `addons/terrain_3d` dependency from the active branch so browser exports no longer advertise GDExtension libraries.
+- Added an export-time validation in `scripts/build_exports.sh` that fails if the HTML5 bundle still references native extension libraries.
+- Updated local run/test scripts to bootstrap a clean Godot import pass when `.godot/imported` is missing.
 - Bumped project version to `0.4.3`.
 - Migrated the active runtime/tooling path from Godot `3.5.3` to Godot `4.5.2`.
 - Added `scripts/Main4.gd` as the new Godot 4-native gameplay script and switched the main scene to it.

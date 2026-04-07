@@ -6,13 +6,23 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GODOT_RELEASE="4.5.2-stable"
 LOCAL_GODOT="$ROOT_DIR/tools/godot4/Godot_v${GODOT_RELEASE}_linux.x86_64"
 
-if [[ -x "$LOCAL_GODOT" ]]; then
-  exec "$LOCAL_GODOT" --path "$ROOT_DIR" "$@"
+run_godot() {
+  if [[ -x "$LOCAL_GODOT" ]]; then
+    "$LOCAL_GODOT" "$@"
+    return
+  fi
+
+  if command -v godot4 >/dev/null 2>&1; then
+    godot4 "$@"
+    return
+  fi
+
+  echo "No Godot 4 runtime found. Download the local prototype runtime or install godot4." >&2
+  exit 1
+}
+
+if [[ ! -d "$ROOT_DIR/.godot/imported" ]]; then
+  run_godot --headless --path "$ROOT_DIR" --import
 fi
 
-if command -v godot4 >/dev/null 2>&1; then
-  exec godot4 --path "$ROOT_DIR" "$@"
-fi
-
-echo "No Godot 4 runtime found. Download the local prototype runtime or install godot4." >&2
-exit 1
+run_godot --path "$ROOT_DIR" "$@"

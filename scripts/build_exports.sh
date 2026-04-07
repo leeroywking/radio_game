@@ -50,6 +50,7 @@ fi
 require_cmd unzip
 require_cmd zip
 require_cmd sha512sum
+require_cmd grep
 
 mkdir -p "$ROOT_DIR/dist/staging/linux" \
   "$ROOT_DIR/dist/staging/windows" \
@@ -96,6 +97,11 @@ echo "Exporting Windows build..."
 
 echo "Exporting HTML5 build..."
 "$GODOT_BIN" --headless --path "$ROOT_DIR" --export-release "Web" "dist/staging/html5/index.html"
+
+if grep -q "libterrain\\|gdextensionLibs.*\\.wasm" "$ROOT_DIR/dist/staging/html5/index.html"; then
+  echo "Web export still references GDExtension libraries, which will break the live preview." >&2
+  exit 1
+fi
 
 (
   cd "$ROOT_DIR/dist/staging/linux"

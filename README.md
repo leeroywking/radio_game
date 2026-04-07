@@ -5,7 +5,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/leeroywking/radio_game?display_name=release)](https://github.com/leeroywking/radio_game/releases/latest)
 [![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-lightgrey)](./LICENSE)
 
-Radio direction-finding training prototype built in Godot. The current gameplay loop teaches players to tune a DF receiver, sort target audio from decoys, capture bearings, and place a fix. The current migration branch moves that loop onto a Godot 4 first-person terrain view.
+Radio direction-finding training prototype built in Godot. The current gameplay loop teaches players to tune a DF receiver, sort target audio from decoys, capture bearings, and place a fix. The current migration branch moves that loop onto a Godot 4 first-person terrain view backed by built-in terrain mesh rendering so the browser demo stays playable.
 
 ## Status
 
@@ -66,6 +66,7 @@ The test agent writes local runtime reports into `testing/reports/`, compares th
 
 - First-person terrain view generated from the Washington hillshade
 - Tree scatter across the 3D terrain
+- Built-in terrain mesh backend that works in the browser preview without native addons
 - Shared DF/scanner/bearing/map-board loop running in the Godot 4 branch
 - DF tuning by direct frequency entry, slider, or waterfall click
 - Full-band waterfall display
@@ -73,7 +74,7 @@ The test agent writes local runtime reports into `testing/reports/`, compares th
 - Audio discrimination between the real conversation and educational decoys
 - Bearing capture and fix submission
 - A startup welcome modal explaining the hunt flow
-- Terrain startup and export validation are still being hardened on the Godot 4 branch
+- Browser export now validates that the generated HTML bundle does not reference native extension libraries
 
 ## Releases And Downloads
 

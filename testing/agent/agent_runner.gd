@@ -95,15 +95,17 @@ func _run_terrain_bootstrap_case() -> Dictionary:
 	await _wait_seconds(0.05).timeout
 	var snapshot = game.testing_snapshot()
 	var ready := bool(snapshot.get("terrain_ready", false))
+	var terrain_backend := String(snapshot.get("terrain_backend", ""))
 	var tree_count := int(snapshot.get("tree_count", 0))
 	var height_min := float(snapshot.get("terrain_height_min", 0.0))
 	var height_max := float(snapshot.get("terrain_height_max", 0.0))
 	return {
 		"name": "terrain_bootstrap",
-		"pass": ready and tree_count >= 120 and height_max > height_min + 40.0,
+		"pass": ready and terrain_backend == "builtin_mesh" and tree_count >= 120 and height_max > height_min + 40.0,
 		"warning": false,
 		"details": {
 			"terrain_ready": ready,
+			"terrain_backend": terrain_backend,
 			"tree_count": tree_count,
 			"terrain_height_min": height_min,
 			"terrain_height_max": height_max

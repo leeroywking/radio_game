@@ -26,6 +26,7 @@ const WATERFALL_HISTORY := 36
 const TERRAIN_SIZE := Vector2(2048.0, 2048.0)
 const TERRAIN_HEIGHT_SCALE := 340.0
 const TERRAIN_HEIGHT_OFFSET := -120.0
+const TERRAIN_GRID_RESOLUTION := 128
 const PLAYER_MOVE_SPEED := 125.0
 const PLAYER_EYE_HEIGHT := 1.7
 const PLAYER_LOOK_SENSITIVITY := 0.0022
@@ -153,9 +154,10 @@ var player_pitch := -0.08
 var world_container: SubViewportContainer = null
 var world_viewport: SubViewport = null
 var world_root: Node3D = null
-var terrain = null
-var terrain_material = null
-var terrain_assets = null
+var terrain_mesh_instance: MeshInstance3D = null
+var terrain_collision_body: StaticBody3D = null
+var terrain_material: StandardMaterial3D = null
+var terrain_heightfield := PackedFloat32Array()
 var player_body: CharacterBody3D = null
 var player_camera_yaw: Node3D = null
 var player_camera_pitch: Node3D = null
@@ -313,88 +315,43 @@ func _setup_world_view() -> void:
 
 
 func _setup_terrain_world() -> void:
-	var extension_path := "res://addons/terrain_3d/terrain.gdextension"
-	if not GDExtensionManager.is_extension_loaded(extension_path):
-		var load_status := GDExtensionManager.load_extension(extension_path)
-		if load_status != GDExtensionManager.LOAD_STATUS_OK and load_status != GDExtensionManager.LOAD_STATUS_ALREADY_LOADED:
-			push_error("Terrain3D extension failed to load. Status %s" % [load_status])
-			return
-	if not ClassDB.class_exists("Terrain3D"):
-		push_error("Terrain3D class is unavailable. Check the addon installation.")
-		return
-	terrain = ClassDB.instantiate("Terrain3D")
-	terrain.name = "Terrain3D"
-	world_root.add_child(terrain)
-	call_deferred("_finalize_terrain_world")
+	_build_heightfield(TERRAIN_GRID_RESOLUTION)
+	var terrain_mesh := _build_terrain_mesh(TERRAIN_GRID_RESOLUTION)
+	terrain_mesh_instance = MeshInstance3D.new()
+	terrain_mesh_instance.name = "TerrainMesh"
+	terrain_mesh_instance.mesh = terrain_mesh
+	terrain_material = _make_terrain_material()
+	terrain_mesh_instance.material_override = terrain_material
+	world_root.add_child(terrain_mesh_instance)
 
+	terrain_collision_body = StaticBody3D.new()
+	terrain_collision_body.name = "TerrainCollision"
+	var collision_shape := CollisionShape3D.new()
+	var terrain_collision := ConcavePolygonShape3D.new()
+	terrain_collision.set_faces(_mesh_faces_from_array_mesh(terrain_mesh))
+	collision_shape.shape = terrain_collision
+	terrain_collision_body.add_child(collision_shape)
+	world_root.add_child(terrain_collision_body)
 
-func _finalize_terrain_world() -> void:
-	if terrain == null:
-		return
-	await get_tree().process_frame
-	terrain_material = terrain.material
-	terrain_assets = terrain.assets
-	if terrain_material == null or terrain_assets == null:
-		push_error("Terrain3D defaults were not ready after entering the scene tree.")
-		return
-	terrain_material.world_background = 0
-	terrain_material.auto_shader = true
-	terrain_material.set_shader_param("auto_slope", 0.22)
-	terrain_material.set_shader_param("blend_sharpness", 0.88)
-	terrain_material.set_shader_param("dual_scale_far", 140.0)
-	terrain_material.set_shader_param("dual_scale_near", 72.0)
-	terrain_material.set_shader_param("world_noise_height", 22.0)
-
-	_assign_texture_asset(0, "Valley Grass", Color(0.28, 0.38, 0.21), Color(0.34, 0.44, 0.25), 0.03)
-	_assign_texture_asset(1, "Forest Soil", Color(0.31, 0.24, 0.17), Color(0.39, 0.31, 0.22), 0.045)
-	_assign_texture_asset(2, "Rock", Color(0.43, 0.44, 0.46), Color(0.55, 0.56, 0.58), 0.05)
-
-	var height_image := _build_height_image_from_map(1024)
-	terrain.region_size = 1024
-	terrain.data.import_images([height_image, null, null], Vector3(-TERRAIN_SIZE.x * 0.5, 0.0, -TERRAIN_SIZE.y * 0.5), TERRAIN_HEIGHT_OFFSET, TERRAIN_HEIGHT_SCALE)
 	terrain_ready = true
 	_scatter_trees()
 	_sync_player_body_from_map()
 
-
-func _assign_texture_asset(index: int, asset_name: String, low_color: Color, high_color: Color, uv_scale: float) -> void:
-	var texture_asset = ClassDB.instantiate("Terrain3DTextureAsset")
-	texture_asset.name = asset_name
-	texture_asset.uv_scale = uv_scale
-	texture_asset.albedo_texture = _make_albedo_height_texture(low_color, high_color)
-	texture_asset.normal_texture = _make_flat_normal_texture()
-	terrain.assets.set_texture(index, texture_asset)
-
-
-func _make_albedo_height_texture(low_color: Color, high_color: Color) -> Texture2D:
-	var image := Image.create(128, 128, false, Image.FORMAT_RGBA8)
-	for y in range(image.get_height()):
-		for x in range(image.get_width()):
-			var ratio := float(y) / float(image.get_height() - 1)
-			var color := low_color.lerp(high_color, ratio)
-			color.a = 0.35 + ratio * 0.5
-			image.set_pixel(x, y, color)
-	image.generate_mipmaps()
-	return ImageTexture.create_from_image(image)
-
-
-func _make_flat_normal_texture() -> Texture2D:
-	var image := Image.create(64, 64, false, Image.FORMAT_RGBA8)
-	image.fill(Color(0.5, 0.5, 1.0, 0.85))
-	image.generate_mipmaps()
-	return ImageTexture.create_from_image(image)
-
-
-func _build_height_image_from_map(size: int) -> Image:
+func _build_source_height_image(size: int) -> Image:
 	var source := Image.load_from_file(ProjectSettings.globalize_path(MAP_PATH))
 	if source == null or source.is_empty():
 		source = Image.create(size, size, false, Image.FORMAT_RGB8)
 		source.fill(Color(0.55, 0.55, 0.55))
 	else:
 		source.resize(size, size, Image.INTERPOLATE_LANCZOS)
-	var height_image := Image.create(size, size, false, Image.FORMAT_RF)
+	return source
+
+
+func _build_heightfield(size: int) -> void:
+	var source := _build_source_height_image(size)
 	terrain_height_min = 999999.0
 	terrain_height_max = -999999.0
+	terrain_heightfield.resize(size * size)
 	for y in range(size):
 		for x in range(size):
 			var pixel := source.get_pixel(x, y)
@@ -402,11 +359,98 @@ func _build_height_image_from_map(size: int) -> Image:
 			var ridge := pow(clamp((luminance - 0.18) / 0.82, 0.0, 1.0), 2.25)
 			var basin := 0.05 * sin(float(x) * 0.06) * cos(float(y) * 0.04)
 			var height_value: float = clamp(ridge + basin, 0.0, 1.0)
-			height_image.set_pixel(x, y, Color(height_value, 0.0, 0.0, 1.0))
 			var world_height: float = TERRAIN_HEIGHT_OFFSET + height_value * TERRAIN_HEIGHT_SCALE
+			terrain_heightfield[y * size + x] = world_height
 			terrain_height_min = min(terrain_height_min, world_height)
 			terrain_height_max = max(terrain_height_max, world_height)
-	return height_image
+
+
+func _build_terrain_mesh(size: int) -> ArrayMesh:
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	vertices.resize(size * size)
+	normals.resize(size * size)
+	colors.resize(size * size)
+	uvs.resize(size * size)
+	for y in range(size):
+		for x in range(size):
+			var index := y * size + x
+			var rx := float(x) / float(size - 1)
+			var ry := float(y) / float(size - 1)
+			var world_x: float = lerpf(-TERRAIN_SIZE.x * 0.5, TERRAIN_SIZE.x * 0.5, rx)
+			var world_z: float = lerpf(-TERRAIN_SIZE.y * 0.5, TERRAIN_SIZE.y * 0.5, ry)
+			var world_y: float = terrain_heightfield[index]
+			vertices[index] = Vector3(world_x, world_y, world_z)
+			uvs[index] = Vector2(rx, ry)
+			colors[index] = _terrain_color_for_height(world_y)
+			normals[index] = _terrain_normal_from_grid(x, y, size)
+	for y in range(size - 1):
+		for x in range(size - 1):
+			var top_left := y * size + x
+			var top_right := top_left + 1
+			var bottom_left := (y + 1) * size + x
+			var bottom_right := bottom_left + 1
+			indices.append_array([top_left, bottom_left, top_right, top_right, bottom_left, bottom_right])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+func _mesh_faces_from_array_mesh(mesh: ArrayMesh) -> PackedVector3Array:
+	var faces := PackedVector3Array()
+	if mesh.get_surface_count() == 0:
+		return faces
+	var arrays := mesh.surface_get_arrays(0)
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	faces.resize(indices.size())
+	for i in range(indices.size()):
+		faces[i] = vertices[indices[i]]
+	return faces
+
+
+func _make_terrain_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.roughness = 1.0
+	material.metallic = 0.0
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return material
+
+
+func _terrain_color_for_height(world_height: float) -> Color:
+	var ratio := inverse_lerp(terrain_height_min, terrain_height_max, world_height)
+	if ratio < 0.28:
+		return Color(0.28, 0.37, 0.22)
+	if ratio < 0.56:
+		return Color(0.34, 0.31, 0.22)
+	if ratio < 0.78:
+		return Color(0.42, 0.43, 0.41)
+	return Color(0.74, 0.76, 0.78)
+
+
+func _terrain_normal_from_grid(x: int, y: int, size: int) -> Vector3:
+	var left := _terrain_height_from_grid(max(x - 1, 0), y, size)
+	var right := _terrain_height_from_grid(min(x + 1, size - 1), y, size)
+	var down := _terrain_height_from_grid(x, max(y - 1, 0), size)
+	var up := _terrain_height_from_grid(x, min(y + 1, size - 1), size)
+	var dx := TERRAIN_SIZE.x / float(size - 1)
+	var dz := TERRAIN_SIZE.y / float(size - 1)
+	return Vector3(left - right, 2.0 * min(dx, dz), down - up).normalized()
+
+
+func _terrain_height_from_grid(x: int, y: int, size: int) -> float:
+	return terrain_heightfield[y * size + x]
 
 
 func _scatter_trees() -> void:
@@ -604,10 +648,32 @@ func _terrain_to_map(world_pos: Vector3) -> Vector2:
 
 
 func _terrain_height_at_world(world_pos: Vector3) -> float:
-	if terrain_ready and terrain != null:
-		var height: float = terrain.data.get_height(world_pos)
-		return height if is_finite(height) else 0.0
+	if terrain_ready and not terrain_heightfield.is_empty():
+		var rx: float = clampf((world_pos.x + TERRAIN_SIZE.x * 0.5) / TERRAIN_SIZE.x, 0.0, 1.0)
+		var ry: float = clampf((world_pos.z + TERRAIN_SIZE.y * 0.5) / TERRAIN_SIZE.y, 0.0, 1.0)
+		return _sample_terrain_height_ratio(rx, ry)
 	return 0.0
+
+
+func _sample_terrain_height_ratio(rx: float, ry: float) -> float:
+	if terrain_heightfield.is_empty():
+		return 0.0
+	var size: int = TERRAIN_GRID_RESOLUTION
+	var x: float = clampf(rx, 0.0, 1.0) * float(size - 1)
+	var y: float = clampf(ry, 0.0, 1.0) * float(size - 1)
+	var x0 := int(floor(x))
+	var y0 := int(floor(y))
+	var x1: int = mini(x0 + 1, size - 1)
+	var y1: int = mini(y0 + 1, size - 1)
+	var tx: float = x - float(x0)
+	var ty: float = y - float(y0)
+	var h00 := _terrain_height_from_grid(x0, y0, size)
+	var h10 := _terrain_height_from_grid(x1, y0, size)
+	var h01 := _terrain_height_from_grid(x0, y1, size)
+	var h11 := _terrain_height_from_grid(x1, y1, size)
+	var h0: float = lerpf(h00, h10, tx)
+	var h1: float = lerpf(h01, h11, tx)
+	return lerpf(h0, h1, ty)
 
 
 func _load_map_texture() -> void:
@@ -1448,6 +1514,7 @@ func testing_snapshot() -> Dictionary:
 		"broadcasts": testing_get_broadcasts(),
 		"last_bearing": last_bearing,
 		"terrain_ready": terrain_ready,
+		"terrain_backend": "builtin_mesh",
 		"terrain_height_min": terrain_height_min,
 		"terrain_height_max": terrain_height_max,
 		"tree_count": tree_count_actual,
