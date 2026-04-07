@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.5`.
+- Added `scripts/TerrainImportModel.gd`, a profile-driven image terrain importer with `hillshade_reconstruction` and first-pass `contour_reconstruction` modes.
+- Switched the active first-person terrain branch to a named Washington hillshade import profile instead of embedding the terrain reconstruction logic directly in the scene script.
+- Added importer metadata to the runtime snapshot and a regression case that proves the WA hillshade demo profile is active.
+- Documented the importer approach in `docs/image-terrain-importer.md`.
 - Bumped project version to `0.4.4`.
 - Corrected first-person movement to follow the actual camera-facing direction instead of a drifting manual yaw convention.
 - Increased first-person mouse-look sensitivity so turning feels closer to a normal FPS baseline.

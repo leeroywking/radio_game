@@ -7,6 +7,7 @@ This repository contains a playable Godot-based prototype for a radio direction 
 The current build includes:
 
 - A Godot 4 first-person terrain view generated from the USGS Washington hillshade
+- Terrain reconstruction is now driven by a profile-based image importer rather than only scene-local math
 - Terrain now uses a built-in mesh-and-collision backend instead of a native addon, so the browser preview can run without GDExtension support
 - First-person movement now derives from the actual camera basis, so forward/back behavior and DF heading stay aligned
 - Tree scatter across the terrain view
@@ -70,10 +71,16 @@ The current build includes:
 12. First-person controls need to be verified behaviorally, not assumed from yaw math.
    The manual trig-based movement path could feel reversed even when the DF compass looked plausible. The active branch now derives movement from the camera basis and has a regression case that checks forward motion against the current heading.
 
+13. Terrain generation needs a reusable import layer.
+   The built-in terrain backend is now fed by `TerrainImportModel`, which separates source-image interpretation from the scene script and gives us a path to support future contour maps as inputs instead of only the current hillshade.
+
 ## Current files to know
 
 - `scripts/Main4.gd`
-  Active Godot 4 gameplay script. Owns built-in first-person terrain setup, shared DF/scanner simulation, waterfall rendering, and map-board plotting.
+  Active Godot 4 gameplay script. Owns first-person terrain setup, shared DF/scanner simulation, waterfall rendering, and map-board plotting.
+
+- `scripts/TerrainImportModel.gd`
+  Profile-driven image terrain importer. The current WA demo uses its `hillshade_reconstruction` mode, and the script also contains the first-pass contour import mode for future map inputs.
 
 - `scenes/Main.tscn`
   Current HUD layout and all control widgets.
@@ -107,6 +114,9 @@ The current build includes:
 
 - First-person control coverage
   The headless testing agent now also verifies that stepping forward at the default heading actually advances the player in the camera-facing direction.
+
+- Terrain import coverage
+  The headless testing agent now verifies that the active terrain build came from the named `wa_hillshade_demo` import profile.
 
 - `docs/3d-restart-options.md`
   Historical framework survey from before the current built-in Godot 4 terrain migration landed.

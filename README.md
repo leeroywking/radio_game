@@ -23,6 +23,7 @@ Radio direction-finding training prototype built in Godot. The current gameplay 
 - Prototype scope: [docs/prototype.md](/home/ein/projects/simple_game/docs/prototype.md)
 - 3D restart options: [docs/3d-restart-options.md](/home/ein/projects/simple_game/docs/3d-restart-options.md)
 - Distribution notes: [docs/distribution.md](/home/ein/projects/simple_game/docs/distribution.md)
+- Image terrain importer notes: [docs/image-terrain-importer.md](/home/ein/projects/simple_game/docs/image-terrain-importer.md)
 
 ## Requirements
 
@@ -65,6 +66,7 @@ The test agent writes local runtime reports into `testing/reports/`, compares th
 ## What The Prototype Covers
 
 - First-person terrain view generated from the Washington hillshade
+- Profile-driven image terrain importer used to reconstruct the current Washington terrain patch
 - Tree scatter across the 3D terrain
 - Built-in terrain mesh backend that works in the browser preview without native addons
 - Shared DF/scanner/bearing/map-board loop running in the Godot 4 branch

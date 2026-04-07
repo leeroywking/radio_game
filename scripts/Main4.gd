@@ -1,5 +1,7 @@
 extends Node2D
 
+const TerrainImportModelScript = preload("res://scripts/TerrainImportModel.gd")
+
 const WORLD_SIZE := Vector2(1280, 720)
 const PLAY_AREA := Rect2(Vector2(400, 40), Vector2(840, 640))
 const PLAYER_RADIUS := 10.0
@@ -32,6 +34,23 @@ const PLAYER_EYE_HEIGHT := 1.7
 const PLAYER_LOOK_SENSITIVITY := 0.0054
 const TREE_COUNT := 260
 const TREE_LINE_ALTITUDE := 180.0
+const TERRAIN_IMPORT_PROFILE := {
+	"id": "wa_hillshade_demo",
+	"label": "WA Hillshade Demo",
+	"mode": "hillshade_reconstruction",
+	"source_path": MAP_PATH,
+	"grid_size": TERRAIN_GRID_RESOLUTION,
+	"contrast": 1.22,
+	"gamma": 0.80,
+	"ridge_weight": 0.78,
+	"valley_weight": 0.28,
+	"detail_weight": 0.10,
+	"spur_weight": 0.08,
+	"line_threshold": 0.34,
+	"line_influence": 0.20,
+	"height_scale": TERRAIN_HEIGHT_SCALE,
+	"height_offset": TERRAIN_HEIGHT_OFFSET
+}
 const BROADCAST_BOUNDS := Rect2(Vector2(470, 90), Vector2(680, 520))
 const BROADCAST_TEMPLATES := [
 	{
@@ -158,6 +177,8 @@ var terrain_mesh_instance: MeshInstance3D = null
 var terrain_collision_body: StaticBody3D = null
 var terrain_material: StandardMaterial3D = null
 var terrain_heightfield := PackedFloat32Array()
+var terrain_source_image: Image = null
+var terrain_import_metadata := {}
 var player_body: CharacterBody3D = null
 var player_camera_yaw: Node3D = null
 var player_camera_pitch: Node3D = null
@@ -315,8 +336,8 @@ func _setup_world_view() -> void:
 
 
 func _setup_terrain_world() -> void:
-	_build_heightfield(TERRAIN_GRID_RESOLUTION)
-	var terrain_mesh := _build_terrain_mesh(TERRAIN_GRID_RESOLUTION)
+	_build_heightfield(TERRAIN_IMPORT_PROFILE)
+	var terrain_mesh := _build_terrain_mesh(int(terrain_import_metadata.get("size", TERRAIN_GRID_RESOLUTION)))
 	terrain_mesh_instance = MeshInstance3D.new()
 	terrain_mesh_instance.name = "TerrainMesh"
 	terrain_mesh_instance.mesh = terrain_mesh
@@ -337,35 +358,20 @@ func _setup_terrain_world() -> void:
 	_scatter_trees()
 	_sync_player_body_from_map()
 
-func _build_source_height_image(size: int) -> Image:
-	var source := Image.load_from_file(ProjectSettings.globalize_path(MAP_PATH))
-	if source == null or source.is_empty():
-		source = Image.create(size, size, false, Image.FORMAT_RGB8)
-		source.fill(Color(0.55, 0.55, 0.55))
-	else:
-		source.resize(size, size, Image.INTERPOLATE_LANCZOS)
-	return source
-
-
-func _build_heightfield(size: int) -> void:
-	var source := _build_source_height_image(size)
-	terrain_height_min = 999999.0
-	terrain_height_max = -999999.0
-	terrain_heightfield.resize(size * size)
-	for y in range(size):
-		for x in range(size):
-			var pixel := source.get_pixel(x, y)
-			var luminance := pixel.get_luminance()
-			var ridge := pow(clamp((luminance - 0.15) / 0.85, 0.0, 1.0), 1.45)
-			var ridge_detail := 0.11 * sin(float(x) * 0.055) * cos(float(y) * 0.043)
-			var spur := 0.07 * sin(float(x + y) * 0.025)
-			var valley_mask := pow(abs(2.0 * (float(y) / float(size - 1)) - 1.0), 1.35)
-			var valley_floor := -0.22 * (1.0 - valley_mask)
-			var height_value: float = clamp(ridge + ridge_detail + spur + valley_floor, 0.0, 1.0)
-			var world_height: float = TERRAIN_HEIGHT_OFFSET + height_value * TERRAIN_HEIGHT_SCALE
-			terrain_heightfield[y * size + x] = world_height
-			terrain_height_min = min(terrain_height_min, world_height)
-			terrain_height_max = max(terrain_height_max, world_height)
+func _build_heightfield(profile: Dictionary) -> void:
+	var importer: TerrainImportModel = TerrainImportModelScript.new()
+	var import_result: Dictionary = importer.build_heightfield(profile)
+	terrain_heightfield = import_result.get("heights", PackedFloat32Array())
+	terrain_source_image = import_result.get("source_image", null)
+	terrain_height_min = float(import_result.get("min_height", 0.0))
+	terrain_height_max = float(import_result.get("max_height", 0.0))
+	terrain_import_metadata = {
+		"profile_id": String(import_result.get("profile", {}).get("id", "")),
+		"profile_label": String(import_result.get("profile", {}).get("label", "")),
+		"mode": String(import_result.get("profile", {}).get("mode", "")),
+		"source_path": String(import_result.get("profile", {}).get("source_path", "")),
+		"size": int(import_result.get("size", TERRAIN_GRID_RESOLUTION))
+	}
 
 
 func _build_terrain_mesh(size: int) -> ArrayMesh:
@@ -433,6 +439,13 @@ func _make_terrain_material() -> StandardMaterial3D:
 
 func _terrain_color_for_height(world_height: float) -> Color:
 	var ratio := inverse_lerp(terrain_height_min, terrain_height_max, world_height)
+	if terrain_source_image != null and not terrain_source_image.is_empty():
+		var size := int(terrain_import_metadata.get("size", TERRAIN_GRID_RESOLUTION))
+		var sample_y := int(clampf(ratio, 0.0, 1.0) * float(size - 1))
+		var sample_x := int(0.52 * float(size - 1))
+		var base_luma := terrain_source_image.get_pixel(sample_x, sample_y).get_luminance()
+		var tint := Color(0.30, 0.36, 0.28).lerp(Color(0.76, 0.77, 0.79), clampf(base_luma, 0.0, 1.0))
+		return tint
 	if ratio < 0.28:
 		return Color(0.28, 0.37, 0.22)
 	if ratio < 0.56:
@@ -999,6 +1012,7 @@ func _update_status() -> void:
 		"Purpose: identify target traffic, take bearings, and plot a fix.",
 		training_step["title"],
 		"Mode: first-person terrain",
+		"Terrain import: %s" % String(terrain_import_metadata.get("profile_label", "Unknown")),
 		"DF: %.3f MHz" % df_frequency,
 		scanner_text,
 		"Bearings: %d" % bearings.size(),
@@ -1558,6 +1572,7 @@ func testing_snapshot() -> Dictionary:
 		"last_bearing": last_bearing,
 		"terrain_ready": terrain_ready,
 		"terrain_backend": "builtin_mesh",
+		"terrain_import": terrain_import_metadata.duplicate(true),
 		"terrain_height_min": terrain_height_min,
 		"terrain_height_max": terrain_height_max,
 		"tree_count": tree_count_actual,

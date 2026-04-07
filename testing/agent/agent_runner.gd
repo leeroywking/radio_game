@@ -39,6 +39,7 @@ func _run() -> void:
 	var cases: Array = []
 	cases.append(await _run_startup_modal_case())
 	cases.append(await _run_terrain_bootstrap_case())
+	cases.append(await _run_terrain_import_profile_case())
 	cases.append(await _run_terrain_variation_case())
 	cases.append(await _run_first_person_forward_motion_case())
 	cases.append(await _run_waterfall_visibility_case())
@@ -111,6 +112,22 @@ func _run_terrain_bootstrap_case() -> Dictionary:
 			"terrain_height_min": height_min,
 			"terrain_height_max": height_max
 		}
+	}
+
+
+func _run_terrain_import_profile_case() -> Dictionary:
+	game.testing_dismiss_welcome_modal()
+	await _wait_seconds(0.05).timeout
+	var snapshot = game.testing_snapshot()
+	var terrain_import: Dictionary = snapshot.get("terrain_import", {})
+	var source_path := String(terrain_import.get("source_path", ""))
+	var mode := String(terrain_import.get("mode", ""))
+	var profile_id := String(terrain_import.get("profile_id", ""))
+	return {
+		"name": "terrain_import_profile",
+		"pass": profile_id == "wa_hillshade_demo" and mode == "hillshade_reconstruction" and source_path.ends_with("wa_hillshade.png"),
+		"warning": false,
+		"details": terrain_import
 	}
 
 
