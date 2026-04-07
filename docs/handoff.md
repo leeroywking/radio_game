@@ -74,6 +74,9 @@ The current build includes:
 13. Terrain generation needs a reusable import layer.
    The built-in terrain backend is now fed by `TerrainImportModel`, which separates source-image interpretation from the scene script and gives us a path to support future contour maps as inputs instead of only the current hillshade.
 
+14. Terrain world scale needs explicit kilometer semantics.
+   The active branch now treats the imported play area as a `32 x 24 km` paper map with `1 km` grid squares, which keeps traversal and map plotting from feeling like a tiny sandbox.
+
 ## Current files to know
 
 - `scripts/Main4.gd`

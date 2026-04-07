@@ -26,6 +26,12 @@ The current first-person branch uses this profile:
 
 That means the terrain shown in the demo is no longer a purely synthetic ridge field. It is reconstructed from the specific Washington hillshade segment already in the repo, then exaggerated enough to stay legible in first person.
 
+Current world framing on the active terrain branch:
+
+- Imported area footprint: `32 x 24 km`
+- Map grid: `1 km` squares with stronger `5 km` lines
+- Source asset: [wa_hillshade.png](/home/ein/projects/simple_game/assets/maps/wa_hillshade.png)
+
 ## How the hillshade mode works
 
 For each sample in the terrain grid:

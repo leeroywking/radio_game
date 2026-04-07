@@ -40,6 +40,7 @@ func _run() -> void:
 	cases.append(await _run_startup_modal_case())
 	cases.append(await _run_terrain_bootstrap_case())
 	cases.append(await _run_terrain_import_profile_case())
+	cases.append(await _run_terrain_scale_case())
 	cases.append(await _run_terrain_variation_case())
 	cases.append(await _run_first_person_forward_motion_case())
 	cases.append(await _run_waterfall_visibility_case())
@@ -128,6 +129,27 @@ func _run_terrain_import_profile_case() -> Dictionary:
 		"pass": profile_id == "wa_hillshade_demo" and mode == "hillshade_reconstruction" and source_path.ends_with("wa_hillshade.png"),
 		"warning": false,
 		"details": terrain_import
+	}
+
+
+func _run_terrain_scale_case() -> Dictionary:
+	game.testing_dismiss_welcome_modal()
+	await _wait_seconds(0.05).timeout
+	var snapshot = game.testing_snapshot()
+	var world_size_km: Vector2 = snapshot.get("terrain_world_size_km", Vector2.ZERO)
+	var world_size_m: Vector2 = snapshot.get("terrain_world_size_m", Vector2.ZERO)
+	var crossing_seconds := float(snapshot.get("estimated_crossing_seconds", 0.0))
+	var tree_profile: Dictionary = snapshot.get("tree_profile", {})
+	return {
+		"name": "terrain_scale",
+		"pass": world_size_km.x >= 24.0 and world_size_km.y >= 18.0 and world_size_m.x >= 24000.0 and crossing_seconds >= 75.0 and float(tree_profile.get("trunk_height", 0.0)) >= 8.0,
+		"warning": false,
+		"details": {
+			"terrain_world_size_km": world_size_km,
+			"terrain_world_size_m": world_size_m,
+			"estimated_crossing_seconds": crossing_seconds,
+			"tree_profile": tree_profile
+		}
 	}
 
 
