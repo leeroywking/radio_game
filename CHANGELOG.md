@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.6`.
+- Rebuilt the DF/scanner audio path so off-channel and full-quieting conditions are truly silent instead of carrying an always-on static bed.
+- Forced the Godot 4 receiver players onto stream playback for web exports and explicitly resume the browser audio context on first interaction.
+- Changed runtime audio loading to prefer imported `AudioStream` resources, using direct decoding only as a fallback.
+- Added regression coverage for audible target copy, full-quieting silence, and off-channel silence.
 - Bumped project version to `0.4.5`.
 - Added `scripts/TerrainImportModel.gd`, a profile-driven image terrain importer with `hillshade_reconstruction` and first-pass `contour_reconstruction` modes.
 - Switched the active first-person terrain branch to a named Washington hillshade import profile instead of embedding the terrain reconstruction logic directly in the scene script.

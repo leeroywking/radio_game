@@ -32,6 +32,10 @@ const TERRAIN_GRID_RESOLUTION := 128
 const PLAYER_MOVE_SPEED := 240.0
 const PLAYER_EYE_HEIGHT := 1.7
 const PLAYER_LOOK_SENSITIVITY := 0.0054
+const NOISE_GATE_LEVEL := 0.015
+const QUIETING_THRESHOLD := 0.62
+const SEARCH_NOISE_MAX := 0.18
+const HOLD_NOISE_MAX := 0.05
 const TREE_COUNT := 260
 const TREE_LINE_ALTITUDE := 180.0
 const TERRAIN_IMPORT_PROFILE := {
@@ -134,9 +138,10 @@ var df_frequency := 145.000
 var df_volume := 0.85
 var scanner_volume := 0.70
 var smoothed_voice_level := 0.0
-var smoothed_noise_level := 1.0
+var smoothed_noise_level := 0.0
 var bearing_capture_audio_hold_timer := 0.0
 var bearing_capture_audio_hold_broadcast_id := ""
+var audio_bootstrap_ready := false
 
 var scanner_active := false
 var scanner_locked := false
@@ -148,7 +153,7 @@ var scanner_lock_strength := 0.0
 
 var receiver_profile := {
 	"voice_level": 0.0,
-	"noise_level": 1.0,
+	"noise_level": 0.0,
 	"quality": "searching",
 	"state": "idle",
 	"clarity_base": 0.0,
@@ -533,15 +538,20 @@ func _setup_audio() -> void:
 	for broadcast in BROADCAST_TEMPLATES:
 		audio_stream_cache[broadcast["id"]] = _load_loopable_stream(broadcast["path"], true)
 	df_voice_player = AudioStreamPlayer.new()
+	df_voice_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
+	df_voice_player.bus = "Master"
 	add_child(df_voice_player)
 	df_noise_player = AudioStreamPlayer.new()
+	df_noise_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	df_noise_player.stream = _load_loopable_stream(STATIC_WAV_PATH, true)
+	df_noise_player.bus = "Master"
+	df_noise_player.volume_db = -80.0
 	add_child(df_noise_player)
 	scanner_voice_player = AudioStreamPlayer.new()
+	scanner_voice_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
+	scanner_voice_player.bus = "Master"
 	add_child(scanner_voice_player)
-	df_voice_player.play()
-	df_noise_player.play()
-	scanner_voice_player.play()
+	_prime_audio_output()
 
 
 func _process(delta: float) -> void:
@@ -565,7 +575,10 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if welcome_modal.visible:
 		if event is InputEventMouseButton and event.pressed:
+			_prime_audio_output()
 			return
+	if event is InputEventKey and event.pressed and not event.echo:
+		_prime_audio_output()
 	if event is InputEventMouseMotion and mouse_capture_active:
 		player_yaw -= event.relative.x * PLAYER_LOOK_SENSITIVITY
 		player_pitch = clamp(player_pitch - event.relative.y * PLAYER_LOOK_SENSITIVITY * 0.7, deg_to_rad(-70.0), deg_to_rad(70.0))
@@ -588,6 +601,7 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_map_board"):
 		_toggle_map_board()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_prime_audio_output()
 		if map_board_visible and MAP_BOARD_RECT.has_point(event.position):
 			fix_position = _world_point_from_map_board(event.position)
 			fix_placed = true
@@ -604,6 +618,45 @@ func _input(event: InputEvent) -> void:
 func _set_mouse_capture(enabled: bool) -> void:
 	mouse_capture_active = enabled and not map_board_visible and not welcome_modal.visible
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if mouse_capture_active else Input.MOUSE_MODE_VISIBLE)
+	if mouse_capture_active:
+		_prime_audio_output()
+
+
+func _prime_audio_output() -> void:
+	audio_bootstrap_ready = true
+	_resume_web_audio_context()
+	if AudioServer.get_bus_count() > 0:
+		AudioServer.set_bus_mute(0, false)
+	if df_voice_player != null and df_voice_player.stream != null and not df_voice_player.playing:
+		df_voice_player.play()
+	if scanner_voice_player != null and scanner_voice_player.stream != null and not scanner_voice_player.playing:
+		scanner_voice_player.play()
+
+
+func _resume_web_audio_context() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("""
+		(function () {
+			const candidates = [];
+			if (typeof godotAudioContext !== "undefined") candidates.push(godotAudioContext);
+			if (typeof Module !== "undefined") {
+				if (Module.godotAudioContext) candidates.push(Module.godotAudioContext);
+				if (Module.audioContext) candidates.push(Module.audioContext);
+			}
+			if (typeof window !== "undefined") {
+				if (window.godotAudioContext) candidates.push(window.godotAudioContext);
+				if (window.audioContext) candidates.push(window.audioContext);
+			}
+			for (const ctx of candidates) {
+				try {
+					if (ctx && ctx.state === "suspended" && typeof ctx.resume === "function") {
+						ctx.resume();
+					}
+				} catch (error) {}
+			}
+		})();
+	""", true)
 
 
 func _apply_camera_rotation() -> void:
@@ -704,6 +757,7 @@ func _load_map_texture() -> void:
 
 func _dismiss_welcome_modal() -> void:
 	welcome_modal.visible = false
+	_prime_audio_output()
 	_set_mouse_capture(false)
 
 
@@ -973,7 +1027,7 @@ func _reset_hunt() -> void:
 	map_board_visible = false
 	_set_mouse_capture(false)
 	smoothed_voice_level = 0.0
-	smoothed_noise_level = 1.0
+	smoothed_noise_level = 0.0
 	df_frequency = 145.000
 	scanner_active = false
 	scanner_locked = false
@@ -982,6 +1036,7 @@ func _reset_hunt() -> void:
 	scanner_hop_timer = 0.0
 	scanner_step_index = 0
 	scanner_lock_strength = 0.0
+	current_df_broadcast_id = ""
 	current_scanner_broadcast_id = ""
 	waterfall_rows.clear()
 	player_position = PLAYER_START
@@ -1142,7 +1197,10 @@ func _compute_df_signal(broadcast: Dictionary) -> Dictionary:
 	var distance_factor = clamp(1.0 - distance / MAX_DISTANCE, 0.0, 1.0)
 	var clarity_base = distance_factor * lobe
 	var voice_level = clamp(pow(clarity_base, 0.65) * 1.1, 0.0, 1.0)
-	var noise_level = clamp(1.0 - voice_level * 1.1, 0.02, 1.0)
+	var noise_level = 0.0
+	if clarity_base > 0.06 and clarity_base < QUIETING_THRESHOLD:
+		var weak_ratio = inverse_lerp(QUIETING_THRESHOLD, 0.06, clarity_base)
+		noise_level = clamp(weak_ratio * SEARCH_NOISE_MAX, 0.0, SEARCH_NOISE_MAX)
 	var quality = "poor"
 	if clarity_base > 0.75:
 		quality = "excellent"
@@ -1152,7 +1210,7 @@ func _compute_df_signal(broadcast: Dictionary) -> Dictionary:
 		quality = "usable"
 	if distance < OVERLOAD_DISTANCE:
 		voice_level *= 0.58
-		noise_level = 1.0
+		noise_level = 0.12
 		quality = "poor"
 	return {
 		"voice_level": voice_level,
@@ -1169,14 +1227,14 @@ func _get_df_profile() -> Dictionary:
 		if bearing_capture_audio_hold_timer > 0.0 and bearing_capture_audio_hold_broadcast_id != "":
 			return {
 				"voice_level": max(smoothed_voice_level, 0.0),
-				"noise_level": max(smoothed_noise_level, 0.18),
+				"noise_level": min(max(smoothed_noise_level, 0.0), HOLD_NOISE_MAX),
 				"quality": "captured",
 				"state": "hold",
 				"clarity_base": max(smoothed_voice_level, 0.0),
 				"broadcast_id": bearing_capture_audio_hold_broadcast_id
 			}
 		smoothed_voice_level = lerp(smoothed_voice_level, 0.0, 0.22)
-		smoothed_noise_level = lerp(smoothed_noise_level, 0.38, 0.18)
+		smoothed_noise_level = lerp(smoothed_noise_level, 0.0, 0.25)
 		return {"voice_level": smoothed_voice_level, "noise_level": smoothed_noise_level, "quality": "off-channel", "state": "retuning", "clarity_base": 0.0, "broadcast_id": ""}
 	var signal_reading = _compute_df_signal(active_broadcast)
 	smoothed_voice_level = lerp(smoothed_voice_level, signal_reading["voice_level"], 0.18)
@@ -1251,6 +1309,7 @@ func _unlock_scanner() -> void:
 func _update_audio_mix(reading: Dictionary) -> void:
 	if df_voice_player == null:
 		return
+	_prime_audio_output()
 	_update_player_stream(df_voice_player, reading["broadcast_id"], current_df_broadcast_id)
 	current_df_broadcast_id = reading["broadcast_id"]
 	_update_player_stream(scanner_voice_player, scanner_profile["broadcast_id"], current_scanner_broadcast_id)
@@ -1258,22 +1317,30 @@ func _update_audio_mix(reading: Dictionary) -> void:
 	var voice_db = _scaled_volume_db(_broadcast_gain_db(reading["broadcast_id"]), reading["voice_level"] * df_volume)
 	var noise_mix = 0.0 if clean_monitor_enabled else reading["noise_level"] * df_volume
 	df_voice_player.volume_db = voice_db
-	df_noise_player.volume_db = _scaled_volume_db(-6.0, noise_mix)
+	_update_noise_player(noise_mix)
 	scanner_voice_player.volume_db = _scaled_volume_db(_broadcast_gain_db(scanner_profile["broadcast_id"]) - 1.5, scanner_profile["voice_level"] * scanner_volume)
 
 
 func _update_player_stream(player: AudioStreamPlayer, desired_broadcast_id: String, current_broadcast_id: String) -> void:
 	if desired_broadcast_id == "":
+		if player.playing:
+			player.stop()
 		player.stream = null
 		return
 	if desired_broadcast_id != current_broadcast_id:
 		player.stream = audio_stream_cache.get(desired_broadcast_id, null)
-		player.play()
+		if player.stream != null:
+			player.play()
 	elif not player.playing:
 		player.play()
 
 
 func _load_loopable_stream(path: String, should_loop: bool):
+	var imported = load(path)
+	if imported is AudioStream:
+		var duplicated: AudioStream = imported.duplicate()
+		_apply_loop_mode(duplicated, should_loop)
+		return duplicated
 	if path.to_lower().ends_with(".mp3"):
 		return _load_mp3_stream(path, should_loop)
 	if path.to_lower().ends_with(".wav"):
@@ -1287,7 +1354,7 @@ func _load_mp3_stream(path: String, should_loop: bool) -> AudioStream:
 		return AudioStreamMP3.new()
 	var stream := AudioStreamMP3.new()
 	stream.data = file.get_buffer(file.get_length())
-	stream.loop = should_loop
+	_apply_loop_mode(stream, should_loop)
 	return stream
 
 
@@ -1295,10 +1362,31 @@ func _load_wav_stream(path: String, should_loop: bool) -> AudioStream:
 	var imported = load(path)
 	if imported is AudioStreamWAV:
 		var stream: AudioStreamWAV = imported.duplicate()
-		if should_loop:
-			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		_apply_loop_mode(stream, should_loop)
 		return stream
 	return AudioStreamWAV.new()
+
+
+func _apply_loop_mode(stream: AudioStream, should_loop: bool) -> void:
+	if stream is AudioStreamMP3:
+		var mp3_stream: AudioStreamMP3 = stream
+		mp3_stream.loop = should_loop
+	elif stream is AudioStreamWAV:
+		var wav_stream: AudioStreamWAV = stream
+		wav_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if should_loop else AudioStreamWAV.LOOP_DISABLED
+
+
+func _update_noise_player(noise_mix: float) -> void:
+	if df_noise_player == null:
+		return
+	if noise_mix <= NOISE_GATE_LEVEL or df_noise_player.stream == null:
+		df_noise_player.volume_db = -80.0
+		if df_noise_player.playing:
+			df_noise_player.stop()
+		return
+	df_noise_player.volume_db = _scaled_volume_db(-14.0, noise_mix)
+	if not df_noise_player.playing:
+		df_noise_player.play()
 
 
 func _broadcast_gain_db(broadcast_id: String) -> float:
@@ -1565,9 +1653,18 @@ func testing_snapshot() -> Dictionary:
 		"current_df_broadcast_id": current_df_broadcast_id,
 		"current_scanner_broadcast_id": current_scanner_broadcast_id,
 		"df_voice_volume_db": df_voice_player.volume_db if df_voice_player != null else -80.0,
+		"df_voice_has_stream": df_voice_player != null and df_voice_player.stream != null,
+		"df_voice_playback_type": df_voice_player.playback_type if df_voice_player != null else -1,
+		"df_noise_volume_db": df_noise_player.volume_db if df_noise_player != null else -80.0,
+		"df_noise_has_stream": df_noise_player != null and df_noise_player.stream != null,
+		"df_noise_playing": df_noise_player.playing if df_noise_player != null else false,
+		"df_noise_playback_type": df_noise_player.playback_type if df_noise_player != null else -1,
 		"df_stream_paused": not df_voice_player.playing if df_voice_player != null else true,
 		"df_playback_position": df_voice_player.get_playback_position() if df_voice_player != null else 0.0,
 		"scanner_playback_position": scanner_voice_player.get_playback_position() if scanner_voice_player != null else 0.0,
+		"scanner_voice_has_stream": scanner_voice_player != null and scanner_voice_player.stream != null,
+		"scanner_voice_playback_type": scanner_voice_player.playback_type if scanner_voice_player != null else -1,
+		"audio_bootstrap_ready": audio_bootstrap_ready,
 		"broadcasts": testing_get_broadcasts(),
 		"last_bearing": last_bearing,
 		"terrain_ready": terrain_ready,
