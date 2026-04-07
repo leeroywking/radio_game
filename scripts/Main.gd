@@ -147,47 +147,47 @@ var scanner_profile = {
 var testing_aim_override_enabled := false
 var testing_aim_direction := Vector2.RIGHT
 
-onready var panel := $HUD/Root/Panel
-onready var status_label := $HUD/Root/Panel/Status
-onready var welcome_modal := $HUD/Root/WelcomeModal
-onready var welcome_button := $HUD/Root/WelcomeModal/WelcomePanel/WelcomeButton
-onready var instructions_label := $HUD/Root/Panel/Instructions
-onready var submit_button := $HUD/Root/Panel/SubmitButton
-onready var reset_button := $HUD/Root/Panel/ResetButton
-onready var clean_monitor_checkbox := $HUD/Root/Panel/CleanMonitor
-onready var scanner_button := $HUD/Root/Panel/ScannerButton
-onready var scanner_unlock_button := $HUD/Root/Panel/ScannerUnlockButton
-onready var map_board_button := $HUD/Root/Panel/MapBoardButton
-onready var df_frequency_slider := $HUD/Root/Panel/DFFrequencySlider
-onready var df_frequency_value := $HUD/Root/Panel/DFFrequencyValue
-onready var df_frequency_input := $HUD/Root/Panel/DFFrequencyInput
-onready var df_volume_slider := $HUD/Root/Panel/DFVolumeSlider
-onready var scanner_volume_slider := $HUD/Root/Panel/ScannerVolumeSlider
-onready var df_volume_value := $HUD/Root/Panel/DFVolumeValue
-onready var scanner_volume_value := $HUD/Root/Panel/ScannerVolumeValue
-onready var waterfall_display := $HUD/Root/Panel/WaterfallDisplay
-onready var map_board_overlay := $HUD/Root/MapBoardOverlay
-onready var map_board_status_label := $HUD/Root/MapBoardOverlay/MapBoardStatus
-onready var map_board_bearing_list := $HUD/Root/MapBoardOverlay/MapBoardBearingList
+@onready var panel := $HUD/Root/Panel
+@onready var status_label := $HUD/Root/Panel/Status
+@onready var welcome_modal := $HUD/Root/WelcomeModal
+@onready var welcome_button := $HUD/Root/WelcomeModal/WelcomePanel/WelcomeButton
+@onready var instructions_label := $HUD/Root/Panel/Instructions
+@onready var submit_button := $HUD/Root/Panel/SubmitButton
+@onready var reset_button := $HUD/Root/Panel/ResetButton
+@onready var clean_monitor_checkbox := $HUD/Root/Panel/CleanMonitor
+@onready var scanner_button := $HUD/Root/Panel/ScannerButton
+@onready var scanner_unlock_button := $HUD/Root/Panel/ScannerUnlockButton
+@onready var map_board_button := $HUD/Root/Panel/MapBoardButton
+@onready var df_frequency_slider := $HUD/Root/Panel/DFFrequencySlider
+@onready var df_frequency_value := $HUD/Root/Panel/DFFrequencyValue
+@onready var df_frequency_input := $HUD/Root/Panel/DFFrequencyInput
+@onready var df_volume_slider := $HUD/Root/Panel/DFVolumeSlider
+@onready var scanner_volume_slider := $HUD/Root/Panel/ScannerVolumeSlider
+@onready var df_volume_value := $HUD/Root/Panel/DFVolumeValue
+@onready var scanner_volume_value := $HUD/Root/Panel/ScannerVolumeValue
+@onready var waterfall_display := $HUD/Root/Panel/WaterfallDisplay
+@onready var map_board_overlay := $HUD/Root/MapBoardOverlay
+@onready var map_board_status_label := $HUD/Root/MapBoardOverlay/MapBoardStatus
+@onready var map_board_bearing_list := $HUD/Root/MapBoardOverlay/MapBoardBearingList
 
 
 func _ready() -> void:
 	randomize()
 	_reset_broadcasts()
 	_load_map_texture()
-	welcome_button.connect("pressed", self, "_dismiss_welcome_modal")
-	submit_button.connect("pressed", self, "_submit_fix")
-	reset_button.connect("pressed", self, "_reset_hunt")
-	scanner_button.connect("pressed", self, "_trigger_scanner")
-	scanner_unlock_button.connect("pressed", self, "_unlock_scanner")
-	map_board_button.connect("pressed", self, "_toggle_map_board")
-	clean_monitor_checkbox.connect("toggled", self, "_on_clean_monitor_toggled")
-	df_frequency_slider.connect("value_changed", self, "_on_df_frequency_changed")
-	df_frequency_input.connect("text_entered", self, "_on_df_frequency_text_entered")
-	df_frequency_input.connect("focus_exited", self, "_on_df_frequency_focus_exited")
-	df_volume_slider.connect("value_changed", self, "_on_df_volume_changed")
-	scanner_volume_slider.connect("value_changed", self, "_on_scanner_volume_changed")
-	clean_monitor_checkbox.pressed = clean_monitor_enabled
+	welcome_button.connect("pressed", Callable(self, "_dismiss_welcome_modal"))
+	submit_button.connect("pressed", Callable(self, "_submit_fix"))
+	reset_button.connect("pressed", Callable(self, "_reset_hunt"))
+	scanner_button.connect("pressed", Callable(self, "_trigger_scanner"))
+	scanner_unlock_button.connect("pressed", Callable(self, "_unlock_scanner"))
+	map_board_button.connect("pressed", Callable(self, "_toggle_map_board"))
+	clean_monitor_checkbox.connect("toggled", Callable(self, "_on_clean_monitor_toggled"))
+	df_frequency_slider.connect("value_changed", Callable(self, "_on_df_frequency_changed"))
+	df_frequency_input.connect("text_submitted", Callable(self, "_on_df_frequency_text_entered"))
+	df_frequency_input.connect("focus_exited", Callable(self, "_on_df_frequency_focus_exited"))
+	df_volume_slider.connect("value_changed", Callable(self, "_on_df_volume_changed"))
+	scanner_volume_slider.connect("value_changed", Callable(self, "_on_scanner_volume_changed"))
+	clean_monitor_checkbox.button_pressed = clean_monitor_enabled
 	df_frequency_slider.value = df_frequency
 	df_volume_slider.value = df_volume * 100.0
 	scanner_volume_slider.value = scanner_volume * 100.0
@@ -196,7 +196,7 @@ func _ready() -> void:
 	_setup_audio()
 	set_process(true)
 	set_physics_process(true)
-	update()
+	queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
@@ -208,7 +208,7 @@ func _physics_process(delta: float) -> void:
 	player_position += movement * PLAYER_SPEED * delta
 	player_position.x = clamp(player_position.x, WORLD_BOUNDS.position.x + PLAYER_RADIUS, WORLD_BOUNDS.end.x - PLAYER_RADIUS)
 	player_position.y = clamp(player_position.y, WORLD_BOUNDS.position.y + PLAYER_RADIUS, WORLD_BOUNDS.end.y - PLAYER_RADIUS)
-	update()
+	queue_redraw()
 
 
 func _process(delta: float) -> void:
@@ -223,14 +223,14 @@ func _process(delta: float) -> void:
 	_push_waterfall_row(delta)
 	_update_waterfall_texture()
 	_update_status()
-	update()
+	queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
 	if welcome_modal != null and welcome_modal.visible:
 		if event.is_action_pressed("submit_fix") or event.is_action_pressed("capture_bearing") or event.is_action_pressed("toggle_scanner") or event.is_action_pressed("reset_hunt") or event.is_action_pressed("toggle_clean_monitor"):
 			_dismiss_welcome_modal()
-			get_tree().set_input_as_handled()
+			get_viewport().set_input_as_handled()
 			return
 	if event.is_action_pressed("capture_bearing"):
 		_capture_bearing()
@@ -244,18 +244,18 @@ func _input(event: InputEvent) -> void:
 		_trigger_scanner()
 	elif event.is_action_pressed("toggle_map_board"):
 		_toggle_map_board()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if map_board_visible and MAP_BOARD_RECT.has_point(event.position):
 			fix_position = _world_point_from_map_board(event.position)
 			result_text = "Fix marker placed from map board."
-			update()
+			queue_redraw()
 			return
 		if waterfall_display != null and waterfall_display.get_global_rect().has_point(event.position):
 			_tune_df_to_waterfall_click(event.position)
 			return
 		if PLAY_AREA.has_point(event.position):
 			fix_position = _screen_to_world(event.position)
-			update()
+			queue_redraw()
 
 
 func _dismiss_welcome_modal() -> void:
@@ -314,7 +314,7 @@ func _draw_compass() -> void:
 	draw_circle(COMPASS_CENTER, COMPASS_RADIUS, Color(0.10, 0.13, 0.16, 0.92))
 	draw_arc(COMPASS_CENTER, COMPASS_RADIUS, 0.0, TAU, 72, Color(0.82, 0.88, 0.93, 0.48), 2.0)
 	for marker in range(0, 360, 10):
-		var radians = deg2rad(marker - 90.0)
+		var radians = deg_to_rad(marker - 90.0)
 		var outer = COMPASS_CENTER + Vector2(cos(radians), sin(radians)) * COMPASS_RADIUS
 		var inner_length = COMPASS_RADIUS - (12.0 if marker % 30 == 0 else 6.0)
 		var inner = COMPASS_CENTER + Vector2(cos(radians), sin(radians)) * inner_length
@@ -322,7 +322,7 @@ func _draw_compass() -> void:
 	for label in [0, 90, 180, 270]:
 		if font == null:
 			continue
-		var radians = deg2rad(label - 90.0)
+		var radians = deg_to_rad(label - 90.0)
 		var pos = COMPASS_CENTER + Vector2(cos(radians), sin(radians)) * (COMPASS_RADIUS - 20.0)
 		var text = "N"
 		if label == 90:
@@ -331,10 +331,10 @@ func _draw_compass() -> void:
 			text = "S"
 		elif label == 270:
 			text = "W"
-		draw_string(font, pos + Vector2(-5, 5), text, Color(0.92, 0.95, 0.98))
+		draw_string(font, pos + Vector2(-5, 5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.92, 0.95, 0.98))
 	var aim_vector = _get_aim_vector()
 	var heading_deg = _bearing_degrees(aim_vector)
-	var heading_angle = deg2rad(heading_deg - 90.0)
+	var heading_angle = deg_to_rad(heading_deg - 90.0)
 	var heading_tip = COMPASS_CENTER + Vector2(cos(heading_angle), sin(heading_angle)) * (COMPASS_RADIUS - 10.0)
 	var heading_back = COMPASS_CENTER - Vector2(cos(heading_angle), sin(heading_angle)) * 18.0
 	draw_line(heading_back, heading_tip, Color(0.98, 0.91, 0.42), 3.0)
@@ -343,7 +343,7 @@ func _draw_compass() -> void:
 	draw_circle(COMPASS_CENTER, 5.0, Color(0.95, 0.98, 1.0))
 	if font != null:
 		var heading_text = "Lensatic %03d deg" % (int(round(heading_deg)) % 360)
-		draw_string(font, COMPASS_CENTER + Vector2(-46, COMPASS_RADIUS + 30.0), heading_text, Color(0.95, 0.98, 1.0))
+		draw_string(font, COMPASS_CENTER + Vector2(-46, COMPASS_RADIUS + 30.0), heading_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.95, 0.98, 1.0))
 
 
 func _draw_map_board() -> void:
@@ -366,7 +366,7 @@ func _draw_map_board() -> void:
 		draw_arc(origin, 10.0, 0.0, TAU, 18, Color(0.12, 0.62, 0.88, 0.48), 1.0)
 		if font != null:
 			var bearing_label = "B%d %03d" % [index + 1, int(round(float(bearing.get("azimuth_deg", 0.0)))) % 360]
-			draw_string(font, origin + Vector2(10, -8), bearing_label, Color(0.10, 0.24, 0.34))
+			draw_string(font, origin + Vector2(10, -8), bearing_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.10, 0.24, 0.34))
 	var player_marker = _map_board_point(player_position)
 	draw_circle(player_marker, 7.0, Color(0.28, 0.78, 0.96))
 	if fix_position != null:
@@ -390,11 +390,11 @@ func _draw_map_board_grid() -> void:
 	var north_arrow = MAP_BOARD_RECT.position + Vector2(MAP_BOARD_RECT.size.x - 32.0, 22.0)
 	draw_line(north_arrow + Vector2(0, 26), north_arrow + Vector2(0, -10), Color(0.15, 0.12, 0.08), 3.0)
 	draw_colored_polygon(
-		PoolVector2Array([north_arrow + Vector2(0, -18), north_arrow + Vector2(-8, -2), north_arrow + Vector2(8, -2)]),
+		PackedVector2Array([north_arrow + Vector2(0, -18), north_arrow + Vector2(-8, -2), north_arrow + Vector2(8, -2)]),
 		Color(0.88, 0.26, 0.20)
 	)
 	if font != null:
-		draw_string(font, north_arrow + Vector2(-6, 42), "N", Color(0.15, 0.12, 0.08))
+		draw_string(font, north_arrow + Vector2(-6, 42), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.15, 0.12, 0.08))
 
 
 func _draw_map_board_reference_ring() -> void:
@@ -402,12 +402,12 @@ func _draw_map_board_reference_ring() -> void:
 	draw_circle(MAP_BOARD_RING_CENTER, MAP_BOARD_RING_RADIUS, Color(0.10, 0.12, 0.16, 0.18))
 	draw_arc(MAP_BOARD_RING_CENTER, MAP_BOARD_RING_RADIUS, 0.0, TAU, 48, Color(0.70, 0.74, 0.82, 0.34), 2.0)
 	for marker in range(0, 360, 15):
-		var radians = deg2rad(marker - 90.0)
+		var radians = deg_to_rad(marker - 90.0)
 		var outer = MAP_BOARD_RING_CENTER + Vector2(cos(radians), sin(radians)) * MAP_BOARD_RING_RADIUS
 		var inner = MAP_BOARD_RING_CENTER + Vector2(cos(radians), sin(radians)) * (MAP_BOARD_RING_RADIUS - (14.0 if marker % 45 == 0 else 7.0))
 		draw_line(inner, outer, Color(0.80, 0.84, 0.91, 0.48), 1.5)
 	for label in [0, 90, 180, 270]:
-		var radians = deg2rad(label - 90.0)
+		var radians = deg_to_rad(label - 90.0)
 		var pos = MAP_BOARD_RING_CENTER + Vector2(cos(radians), sin(radians)) * (MAP_BOARD_RING_RADIUS + 22.0)
 		var text = "N"
 		if label == 90:
@@ -417,7 +417,7 @@ func _draw_map_board_reference_ring() -> void:
 		elif label == 270:
 			text = "W"
 		if font != null:
-			draw_string(font, pos + Vector2(-6, 4), text, Color(0.86, 0.90, 0.97))
+			draw_string(font, pos + Vector2(-6, 4), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.86, 0.90, 0.97))
 
 
 func _draw_bearing_wedge(origin: Vector2, end_point: Vector2, quality: String) -> void:
@@ -433,9 +433,9 @@ func _draw_bearing_wedge(origin: Vector2, end_point: Vector2, quality: String) -
 		return
 	var bearing_angle = bearing_vector.angle()
 	var outer_length = min(MAP_BOARD_RECT.size.x, MAP_BOARD_RECT.size.y) * 0.78
-	var left_angle = bearing_angle - deg2rad(wedge_degrees)
-	var right_angle = bearing_angle + deg2rad(wedge_degrees)
-	var wedge_points = PoolVector2Array([
+	var left_angle = bearing_angle - deg_to_rad(wedge_degrees)
+	var right_angle = bearing_angle + deg_to_rad(wedge_degrees)
+	var wedge_points = PackedVector2Array([
 		origin,
 		origin + Vector2(cos(left_angle), sin(left_angle)) * outer_length,
 		origin + Vector2(cos(right_angle), sin(right_angle)) * outer_length
@@ -475,7 +475,7 @@ func _draw_bearings() -> void:
 		draw_line(origin, end_point, Color(0.66, 0.9, 1.0, 0.78), 2.0)
 		if font != null:
 			var label = "B%d %03d" % [index + 1, int(round(float(bearing.get("azimuth_deg", 0.0)))) % 360]
-			draw_string(font, origin + Vector2(9, -10), label, Color(0.90, 0.96, 1.0))
+			draw_string(font, origin + Vector2(9, -10), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.90, 0.96, 1.0))
 
 
 func _draw_fix_marker() -> void:
@@ -527,7 +527,7 @@ func _capture_bearing() -> void:
 	var azimuth_deg = _bearing_degrees(aim_vector)
 	var shot_number = bearings.size() + 1
 	var previous_separation = 0.0
-	if not bearings.empty():
+	if not bearings.is_empty():
 		previous_separation = player_position.distance_to(bearings[bearings.size() - 1]["origin"])
 	var advice = _bearing_capture_advice(String(reading["quality"]), previous_separation)
 	bearings.append({
@@ -597,7 +597,7 @@ func _update_status() -> void:
 	if fix_position != null:
 		fix_text = "Fix marker placed."
 	var last_bearing_text = "No bearing captured."
-	if not bearings.empty():
+	if not bearings.is_empty():
 		var last_bearing = bearings[bearings.size() - 1]
 		last_bearing_text = "Last bearing: %03d deg %s." % [
 			int(round(float(last_bearing.get("azimuth_deg", 0.0)))) % 360,
@@ -658,13 +658,11 @@ func _load_loopable_stream(path: String, should_loop: bool):
 
 
 func _load_mp3_stream(path: String, should_loop: bool) -> AudioStream:
-	var file = File.new()
-	var err = file.open(path, File.READ)
-	if err != OK:
+	var file = FileAccess.open(path, FileAccess.READ)
+	if file == null:
 		push_error("Unable to open MP3 stream at %s" % path)
 		return AudioStreamMP3.new()
-	var bytes = file.get_buffer(file.get_len())
-	file.close()
+	var bytes = file.get_buffer(file.get_length())
 	var stream = AudioStreamMP3.new()
 	stream.data = bytes
 	stream.loop = should_loop
@@ -696,7 +694,7 @@ func _toggle_map_board() -> void:
 	map_board_visible = not map_board_visible
 	_sync_overlay_visibility()
 	result_text = "Map board opened." if map_board_visible else "Map board closed."
-	update()
+	queue_redraw()
 
 
 func _sync_overlay_visibility() -> void:
@@ -711,7 +709,7 @@ func _map_board_bearing_summary() -> String:
 		"Captured Bearings",
 		"Use the azimuth and quality to plot from each origin."
 	]
-	if bearings.empty():
+	if bearings.is_empty():
 		lines.append("No bearings yet.")
 		return "\n".join(lines)
 	for index in range(bearings.size()):
@@ -736,7 +734,7 @@ func _map_board_font():
 
 func _toggle_clean_monitor() -> void:
 	clean_monitor_enabled = not clean_monitor_enabled
-	clean_monitor_checkbox.pressed = clean_monitor_enabled
+	clean_monitor_checkbox.button_pressed = clean_monitor_enabled
 	var monitor_mode = "receiver"
 	if clean_monitor_enabled:
 		monitor_mode = "clean"
@@ -748,7 +746,7 @@ func _on_clean_monitor_toggled(pressed: bool) -> void:
 
 
 func _on_df_frequency_changed(value: float) -> void:
-	df_frequency = stepify(value, SCANNER_STEP)
+	df_frequency = snapped(value, SCANNER_STEP)
 	_sync_control_labels()
 
 
@@ -782,7 +780,7 @@ func _apply_frequency_text(raw_text: String) -> void:
 	if parsed == 0.0 and raw_text.strip_edges() != "0" and raw_text.strip_edges() != "0.0":
 		df_frequency_input.text = "%.3f" % df_frequency
 		return
-	df_frequency = stepify(clamp(parsed, SCANNER_MIN_FREQ, SCANNER_MAX_FREQ), SCANNER_STEP)
+	df_frequency = snapped(clamp(parsed, SCANNER_MIN_FREQ, SCANNER_MAX_FREQ), SCANNER_STEP)
 	df_frequency_slider.value = df_frequency
 	_sync_control_labels()
 
@@ -794,7 +792,7 @@ func _tune_df_to_waterfall_click(screen_position: Vector2) -> void:
 	if rect.size.x <= 1.0:
 		return
 	var ratio = clamp((screen_position.x - rect.position.x) / rect.size.x, 0.0, 1.0)
-	var tuned_frequency = stepify(lerp(SCANNER_MIN_FREQ, SCANNER_MAX_FREQ, ratio), SCANNER_STEP)
+	var tuned_frequency = snapped(lerp(SCANNER_MIN_FREQ, SCANNER_MAX_FREQ, ratio), SCANNER_STEP)
 	testing_set_df_frequency(tuned_frequency)
 	result_text = "DF tuned from waterfall to %.3f MHz." % df_frequency
 
@@ -802,26 +800,24 @@ func _tune_df_to_waterfall_click(screen_position: Vector2) -> void:
 func _load_wav_stream(path: String, should_loop: bool) -> AudioStream:
 	var imported_stream = load(path)
 	if imported_stream != null:
-		if imported_stream is AudioStreamSample:
-			var sample_stream: AudioStreamSample = imported_stream.duplicate()
+		if imported_stream is AudioStreamWAV:
+			var sample_stream: AudioStreamWAV = imported_stream.duplicate()
 			if should_loop:
-				sample_stream.loop_mode = AudioStreamSample.LOOP_FORWARD
+				sample_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 				sample_stream.loop_begin = 0
 				sample_stream.loop_end = sample_stream.data.size()
 			return sample_stream
 		return imported_stream
 
-	var file = File.new()
-	var err = file.open(path, File.READ)
-	if err != OK:
+	var file = FileAccess.open(path, FileAccess.READ)
+	if file == null:
 		push_error("Unable to open WAV stream at %s" % path)
-		return AudioStreamSample.new()
+		return AudioStreamWAV.new()
 
-	var bytes = file.get_buffer(file.get_len())
-	file.close()
+	var bytes = file.get_buffer(file.get_length())
 	if bytes.size() < 44:
 		push_error("WAV file too small: %s" % path)
-		return AudioStreamSample.new()
+		return AudioStreamWAV.new()
 
 	var channel_count = bytes[22] | (bytes[23] << 8)
 	var sample_rate = bytes[24] | (bytes[25] << 8) | (bytes[26] << 16) | (bytes[27] << 24)
@@ -837,35 +833,34 @@ func _load_wav_stream(path: String, should_loop: bool) -> AudioStream:
 			break
 		data_start += 8 + chunk_size
 
-	var sample_bytes = PoolByteArray()
+	var sample_bytes = PackedByteArray()
 	if data_size > 0 and data_start + data_size <= bytes.size():
 		sample_bytes = bytes.subarray(data_start, data_start + data_size - 1)
 
-	var stream = AudioStreamSample.new()
+	var stream = AudioStreamWAV.new()
 	stream.data = sample_bytes
 	stream.mix_rate = sample_rate
 	stream.stereo = channel_count == 2
 	if bits_per_sample == 16:
-		stream.format = AudioStreamSample.FORMAT_16_BITS
+		stream.format = AudioStreamWAV.FORMAT_16_BITS
 	else:
-		stream.format = AudioStreamSample.FORMAT_8_BITS
+		stream.format = AudioStreamWAV.FORMAT_8_BITS
 	if should_loop:
-		stream.loop_mode = AudioStreamSample.LOOP_FORWARD
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		stream.loop_begin = 0
 		stream.loop_end = int(data_size / max(1, channel_count * max(1, bits_per_sample / 8)))
 	return stream
 
 
 func _load_map_texture() -> void:
-	var image = Image.new()
-	var err = image.load(WA_HILLSHADE_PATH)
-	if err != OK:
+	var imported_texture = load(WA_HILLSHADE_PATH) as Texture2D
+	if imported_texture == null:
 		push_error("Unable to load map image at %s" % WA_HILLSHADE_PATH)
 		return
+	var image = imported_texture.get_image()
 	map_image = image.duplicate()
-	map_image.lock()
 	var texture = ImageTexture.new()
-	texture.create_from_image(image, 0)
+	texture.create_from_image(image)
 	map_texture = texture
 
 
@@ -886,7 +881,7 @@ func _sample_map_elevation(world_position: Vector2) -> float:
 
 func _get_df_profile() -> Dictionary:
 	var active_broadcast = _find_df_broadcast()
-	if active_broadcast.empty():
+	if active_broadcast.is_empty():
 		if bearing_capture_audio_hold_timer > 0.0 and bearing_capture_audio_hold_broadcast_id != "":
 			return {
 				"voice_level": smoothed_voice_level,
@@ -907,16 +902,16 @@ func _get_df_profile() -> Dictionary:
 			"broadcast_id": ""
 		}
 
-	var signal = _compute_df_signal(active_broadcast)
-	var voice_level = signal["voice_level"]
-	var noise_level = signal["noise_level"]
-	var clarity_base = signal["clarity_base"]
+	var signal_reading = _compute_df_signal(active_broadcast)
+	var voice_level = signal_reading["voice_level"]
+	var noise_level = signal_reading["noise_level"]
+	var clarity_base = signal_reading["clarity_base"]
 	smoothed_voice_level = lerp(smoothed_voice_level, voice_level, 0.2)
 	smoothed_noise_level = lerp(smoothed_noise_level, noise_level, 0.18)
 	voice_level = smoothed_voice_level
 	noise_level = smoothed_noise_level
 	var state = "tracking"
-	if signal["distance"] < OVERLOAD_DISTANCE:
+	if signal_reading["distance"] < OVERLOAD_DISTANCE:
 		state = "overload risk"
 		voice_level = clamp(voice_level * 0.55, 0.0, 0.7)
 		noise_level = 1.0
@@ -927,7 +922,7 @@ func _get_df_profile() -> Dictionary:
 	return {
 		"voice_level": voice_level,
 		"noise_level": noise_level,
-		"quality": signal["quality"],
+		"quality": signal_reading["quality"],
 		"state": state,
 		"clarity_base": clarity_base,
 		"broadcast_id": active_broadcast["id"]
@@ -940,8 +935,8 @@ func _find_df_broadcast() -> Dictionary:
 	for broadcast in broadcasts:
 		if abs(df_frequency - broadcast["frequency"]) > TUNE_WINDOW:
 			continue
-		var signal = _compute_df_signal(broadcast)
-		var score = signal["clarity_base"]
+		var signal_reading = _compute_df_signal(broadcast)
+		var score = signal_reading["clarity_base"]
 		if score > best_score:
 			best_score = score
 			best_broadcast = broadcast
@@ -955,7 +950,7 @@ func _compute_df_signal(broadcast: Dictionary) -> Dictionary:
 	var direction_alignment = max(0.0, aim_vector.normalized().dot(to_broadcast.normalized()))
 	var distance_factor = clamp(1.0 - (distance / MAX_DISTANCE), 0.05, 1.0)
 	var clarity_base = clamp(distance_factor * pow(direction_alignment, 1.8), 0.0, 1.0)
-	var time_s = OS.get_ticks_msec() * 0.001
+	var time_s = Time.get_ticks_msec() * 0.001
 	var slow_flutter = 0.84 + 0.08 * sin(time_s * 1.1) + 0.05 * sin(time_s * 2.7 + 0.7)
 	var fast_flutter = 0.06 * sin(time_s * 8.2 + player_position.x * 0.01) + 0.04 * sin(time_s * 13.7 + player_position.y * 0.015)
 	var drift = 0.05 * sin(time_s * 0.43 + distance * 0.004)
@@ -966,7 +961,7 @@ func _compute_df_signal(broadcast: Dictionary) -> Dictionary:
 	var noise_floor = 0.08
 	if broadcast["type"] == "clean":
 		noise_floor = 0.0
-	var dither = rand_range(-0.008, 0.008)
+	var dither = randf_range(-0.008, 0.008)
 	voice_level = _analogize_level(voice_level, 100, dither)
 	var noise_level = clamp(
 		0.52
@@ -1005,7 +1000,7 @@ func _update_scanner(delta: float) -> Dictionary:
 	var locked_broadcast = {}
 	if scanner_locked:
 		locked_broadcast = _broadcast_by_id(scanner_locked_broadcast_id)
-		if locked_broadcast.empty():
+		if locked_broadcast.is_empty():
 			_unlock_scanner()
 		else:
 			var distance_factor = clamp(1.0 - (player_position.distance_to(locked_broadcast["position"]) / (MAX_DISTANCE * 1.1)), 0.0, 1.0)
@@ -1022,7 +1017,7 @@ func _update_scanner(delta: float) -> Dictionary:
 			scanner_step_index = int((scanner_step_index + 7) % safe_step_count)
 			scanner_frequency = SCANNER_MIN_FREQ + scanner_step_index * SCANNER_STEP
 			var candidate = _find_scanner_candidate(scanner_frequency)
-			if not candidate.empty() and candidate["strength"] > 0.24:
+			if not candidate.is_empty() and candidate["strength"] > 0.24:
 				scanner_locked = true
 				scanner_locked_broadcast_id = candidate["broadcast"]["id"]
 				scanner_lock_strength = candidate["strength"]
@@ -1147,7 +1142,7 @@ func _current_training_step() -> Dictionary:
 
 func _bearing_degrees(direction: Vector2) -> float:
 	var normalized = direction.normalized()
-	var degrees_value = rad2deg(atan2(normalized.x, -normalized.y))
+	var degrees_value = rad_to_deg(atan2(normalized.x, -normalized.y))
 	if degrees_value < 0.0:
 		degrees_value += 360.0
 	return degrees_value
@@ -1155,7 +1150,7 @@ func _bearing_degrees(direction: Vector2) -> float:
 
 func _ui_font():
 	if status_label != null:
-		return status_label.get_font("font")
+		return status_label.get_theme_font("font")
 	return null
 
 
@@ -1241,7 +1236,7 @@ func _push_scope_sample(reading: Dictionary) -> void:
 	var voice_envelope = 0.45 + 0.3 * sin(t * 8.0) + 0.2 * sin(t * 15.7 + 0.8) + 0.08 * sin(t * 28.3)
 	voice_envelope = clamp(voice_envelope, 0.05, 1.0)
 	var structured = voice_level * voice_envelope * sin(t * 42.0)
-	var hiss = noise_level * rand_range(-0.95, 0.95)
+	var hiss = noise_level * randf_range(-0.95, 0.95)
 	var hiss_weight = 0.2 + noise_level * 0.55
 	if clean_monitor_enabled:
 		hiss_weight = 0.0
@@ -1255,13 +1250,13 @@ func _push_scope_sample(reading: Dictionary) -> void:
 
 func _push_waterfall_row(delta: float) -> void:
 	var row = []
-	var t = OS.get_ticks_msec() * 0.001
+	var t = Time.get_ticks_msec() * 0.001
 	for bin_index in range(WATERFALL_BINS):
 		var ratio = float(bin_index) / float(max(WATERFALL_BINS - 1, 1))
 		var frequency = lerp(SCANNER_MIN_FREQ, SCANNER_MAX_FREQ, ratio)
 		var ambient_floor = 0.035 + 0.018 * sin(t * 0.65 + ratio * 9.0)
 		var ripple = 0.014 * sin(t * 5.4 + ratio * 34.0 + sin(t * 0.8))
-		var sparkle = rand_range(0.0, 0.014)
+		var sparkle = randf_range(0.0, 0.014)
 		var intensity = ambient_floor + ripple + sparkle
 		for broadcast in broadcasts:
 			intensity += _waterfall_signal_energy(broadcast, frequency, t)
@@ -1291,15 +1286,18 @@ func _waterfall_signal_energy(broadcast: Dictionary, frequency: float, t: float)
 func _update_waterfall_texture() -> void:
 	if waterfall_display == null:
 		return
-	var width = int(max(1.0, waterfall_display.rect_size.x))
-	var height = int(max(1.0, waterfall_display.rect_size.y))
+	var width = int(max(1.0, waterfall_display.size.x))
+	var height = int(max(1.0, waterfall_display.size.y))
+	if width <= 1:
+		width = int(WATERFALL_RECT.size.x)
+	if height <= 1:
+		height = int(WATERFALL_RECT.size.y)
 	var image = Image.new()
 	image.create(width, height, false, Image.FORMAT_RGBA8)
-	image.lock()
 	for y in range(height):
 		for x in range(width):
 			image.set_pixel(x, y, Color(0.02, 0.03, 0.05, 1.0))
-	if not waterfall_rows.empty():
+	if not waterfall_rows.is_empty():
 		var row_count = waterfall_rows.size()
 		var bin_count = waterfall_rows[0].size()
 		for y in range(height):
@@ -1317,12 +1315,11 @@ func _update_waterfall_texture() -> void:
 	var scanner_ratio = (scanner_profile["frequency"] - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
 	var scanner_x = int(clamp(round(scanner_ratio * float(width - 1)), 0, width - 1))
 	for y in range(height):
-		var blended = image.get_pixel(scanner_x, y).linear_interpolate(Color(0.48, 0.82, 0.96, 1.0), 0.65)
+		var blended = image.get_pixel(scanner_x, y).lerp(Color(0.48, 0.82, 0.96, 1.0), 0.65)
 		image.set_pixel(scanner_x, y, blended)
-	image.unlock()
 	if waterfall_texture == null:
 		waterfall_texture = ImageTexture.new()
-	waterfall_texture.create_from_image(image, 0)
+	waterfall_texture.create_from_image(image)
 	waterfall_display.texture = waterfall_texture
 
 
@@ -1347,8 +1344,8 @@ func _audio_summary(reading: Dictionary) -> String:
 
 
 func _analogize_level(value: float, step_count: int, dither: float) -> float:
-	var clamped = clamp(value + dither, 0.0, 1.0)
-	var stepped = round(clamped * step_count) / float(step_count)
+	var limit_length = clamp(value + dither, 0.0, 1.0)
+	var stepped = round(limit_length * step_count) / float(step_count)
 	var overlap = clamp(value * 0.65 + stepped * 0.35 + dither * 0.6, 0.0, 1.0)
 	return overlap
 
@@ -1356,14 +1353,14 @@ func _analogize_level(value: float, step_count: int, dither: float) -> float:
 func _scaled_volume_db(base_db: float, volume_scalar: float) -> float:
 	if volume_scalar <= 0.001:
 		return -80.0
-	return base_db + linear2db(volume_scalar)
+	return base_db + linear_to_db(volume_scalar)
 
 
 func _broadcast_gain_db(broadcast_id: String) -> float:
 	if broadcast_id == "":
 		return 0.0
 	var broadcast = _broadcast_by_id(broadcast_id)
-	if broadcast.empty():
+	if broadcast.is_empty():
 		return 0.0
 	return float(broadcast.get("gain_db", 0.0))
 
@@ -1383,7 +1380,7 @@ func _label_for_broadcast(broadcast_id: String) -> String:
 	if broadcast_id == "":
 		return "none"
 	var broadcast = _broadcast_by_id(broadcast_id)
-	if broadcast.empty():
+	if broadcast.is_empty():
 		return "none"
 	return broadcast["label"]
 
@@ -1416,8 +1413,8 @@ func _random_broadcast_position(used_positions: Array) -> Vector2:
 	var attempt = 0
 	while attempt < 40:
 		var candidate = Vector2(
-			rand_range(BROADCAST_BOUNDS.position.x, BROADCAST_BOUNDS.end.x),
-			rand_range(BROADCAST_BOUNDS.position.y, BROADCAST_BOUNDS.end.y)
+			randf_range(BROADCAST_BOUNDS.position.x, BROADCAST_BOUNDS.end.x),
+			randf_range(BROADCAST_BOUNDS.position.y, BROADCAST_BOUNDS.end.y)
 		)
 		var valid = true
 		for used in used_positions:
@@ -1430,8 +1427,8 @@ func _random_broadcast_position(used_positions: Array) -> Vector2:
 			return candidate
 		attempt += 1
 	return Vector2(
-		rand_range(BROADCAST_BOUNDS.position.x, BROADCAST_BOUNDS.end.x),
-		rand_range(BROADCAST_BOUNDS.position.y, BROADCAST_BOUNDS.end.y)
+		randf_range(BROADCAST_BOUNDS.position.x, BROADCAST_BOUNDS.end.x),
+		randf_range(BROADCAST_BOUNDS.position.y, BROADCAST_BOUNDS.end.y)
 	)
 
 
@@ -1443,7 +1440,7 @@ func _random_broadcast_frequency(used_frequencies: Array, broadcast_id: String, 
 		return fallback
 	var attempt = 0
 	while attempt < 60:
-		var candidate = stepify(rand_range(base_min, base_max), SCANNER_STEP)
+		var candidate = snapped(randf_range(base_min, base_max), SCANNER_STEP)
 		var valid = true
 		for used in used_frequencies:
 			if abs(candidate - used) < min_spacing:
@@ -1460,7 +1457,7 @@ func testing_set_player_position(position: Vector2) -> void:
 
 
 func testing_set_df_frequency(value: float) -> void:
-	df_frequency = stepify(clamp(value, SCANNER_MIN_FREQ, SCANNER_MAX_FREQ), SCANNER_STEP)
+	df_frequency = snapped(clamp(value, SCANNER_MIN_FREQ, SCANNER_MAX_FREQ), SCANNER_STEP)
 	if df_frequency_slider != null:
 		df_frequency_slider.value = df_frequency
 	_sync_control_labels()
@@ -1522,7 +1519,7 @@ func testing_unlock_scanner() -> void:
 
 func testing_lock_scanner_to_broadcast(broadcast_id: String) -> void:
 	var broadcast = _broadcast_by_id(broadcast_id)
-	if broadcast.empty():
+	if broadcast.is_empty():
 		_unlock_scanner()
 		return
 	scanner_active = false
@@ -1549,7 +1546,7 @@ func testing_place_fix_on_map_board(normalized_point: Vector2) -> void:
 func testing_set_clean_monitor(enabled: bool) -> void:
 	clean_monitor_enabled = enabled
 	if clean_monitor_checkbox != null:
-		clean_monitor_checkbox.pressed = enabled
+		clean_monitor_checkbox.button_pressed = enabled
 
 
 func testing_dismiss_welcome_modal() -> void:
@@ -1571,7 +1568,7 @@ func testing_snapshot() -> Dictionary:
 	var waterfall_summary = testing_get_waterfall_summary()
 	var map_board_summary = testing_get_map_board_summary()
 	var last_bearing = {}
-	if not bearings.empty():
+	if not bearings.is_empty():
 		last_bearing = bearings[bearings.size() - 1].duplicate(true)
 	var training_step = _current_training_step()
 	return {
@@ -1644,14 +1641,14 @@ func testing_get_hud_layout_summary() -> Dictionary:
 	var submit_top = 0.0
 	var panel_bottom = 0.0
 	if instructions_label != null:
-		instruction_top = instructions_label.rect_position.y
-		instruction_bottom = instruction_top + instructions_label.rect_size.y
+		instruction_top = instructions_label.position.y
+		instruction_bottom = instruction_top + instructions_label.size.y
 	if scanner_volume_slider != null:
-		scanner_slider_bottom = scanner_volume_slider.rect_position.y + scanner_volume_slider.rect_size.y
+		scanner_slider_bottom = scanner_volume_slider.position.y + scanner_volume_slider.size.y
 	if submit_button != null:
-		submit_top = submit_button.rect_position.y
+		submit_top = submit_button.position.y
 	if panel != null:
-		panel_bottom = panel.rect_size.y
+		panel_bottom = panel.size.y
 	return {
 		"instructions_top": instruction_top,
 		"instructions_bottom": instruction_bottom,
@@ -1660,7 +1657,7 @@ func testing_get_hud_layout_summary() -> Dictionary:
 		"panel_bottom": panel_bottom,
 		"instructions_clear_slider": instruction_top >= scanner_slider_bottom + 6.0,
 		"instructions_clear_buttons": instruction_bottom <= submit_top - 6.0,
-		"buttons_within_panel": submit_button != null and (submit_button.rect_position.y + submit_button.rect_size.y) <= panel_bottom - 4.0
+		"buttons_within_panel": submit_button != null and (submit_button.position.y + submit_button.size.y) <= panel_bottom - 4.0
 	}
 
 
@@ -1691,7 +1688,7 @@ func testing_get_bearing_visual_summary() -> Dictionary:
 
 
 func testing_get_waterfall_intensity_at_frequency(frequency: float) -> float:
-	if waterfall_rows.empty():
+	if waterfall_rows.is_empty():
 		return 0.0
 	var ratio = (frequency - SCANNER_MIN_FREQ) / (SCANNER_MAX_FREQ - SCANNER_MIN_FREQ)
 	var bin_index = int(clamp(round(ratio * float(max(WATERFALL_BINS - 1, 1))), 0, WATERFALL_BINS - 1))

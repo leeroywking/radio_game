@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.5`.
+- Added `scripts/TerrainImportModel.gd`, a profile-driven image terrain importer with `hillshade_reconstruction` and first-pass `contour_reconstruction` modes.
+- Switched the active first-person terrain branch to a named Washington hillshade import profile instead of embedding the terrain reconstruction logic directly in the scene script.
+- Added importer metadata to the runtime snapshot and a regression case that proves the WA hillshade demo profile is active.
+- Documented the importer approach in `docs/image-terrain-importer.md`.
+- Bumped project version to `0.4.4`.
+- Corrected first-person movement to follow the actual camera-facing direction instead of a drifting manual yaw convention.
+- Increased first-person mouse-look sensitivity so turning feels closer to a normal FPS baseline.
+- Reworked the built-in terrain heightfield to produce stronger ridges and valleys, and tightened the terrain-variation regression threshold.
+- Added a first-person forward-motion regression case so `W` continues to mean forward in view.
+- Replaced the web-incompatible Terrain3D addon path with a built-in Godot 4 terrain mesh plus collision backend.
+- Removed the bundled `addons/terrain_3d` dependency from the active branch so browser exports no longer advertise GDExtension libraries.
+- Added an export-time validation in `scripts/build_exports.sh` that fails if the HTML5 bundle still references native extension libraries.
+- Updated local run/test scripts to bootstrap a clean Godot import pass when `.godot/imported` is missing.
+- Bumped project version to `0.4.3`.
+- Migrated the active runtime/tooling path from Godot `3.5.3` to Godot `4.5.2`.
+- Added `scripts/Main4.gd` as the new Godot 4-native gameplay script and switched the main scene to it.
+- Added a first-person terrain view generated from the Washington hillshade, with scattered trees.
+- Kept the DF/scanner/waterfall/map-board loop running on the new Godot 4 branch.
+- Replaced the old Godot 3-focused headless suite with a Godot 4 migration suite that covers terrain bootstrap, terrain variation, waterfall visibility, scanner lock, bearing capture, map-board submission, and DF audibility.
+- Updated local run/test scripts and CI/build automation to use Godot `4.5.2`.
 - Added `VERSION` as the source of truth for shipped release versions.
 - Changed GitHub release automation to publish versioned releases only when `VERSION` changes on `master` or `main`.
 - Added CI enforcement so product-facing PRs must bump `VERSION`.
