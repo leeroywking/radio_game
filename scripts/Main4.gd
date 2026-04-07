@@ -313,6 +313,12 @@ func _setup_world_view() -> void:
 
 
 func _setup_terrain_world() -> void:
+	var extension_path := "res://addons/terrain_3d/terrain.gdextension"
+	if not GDExtensionManager.is_extension_loaded(extension_path):
+		var load_status := GDExtensionManager.load_extension(extension_path)
+		if load_status != GDExtensionManager.LOAD_STATUS_OK and load_status != GDExtensionManager.LOAD_STATUS_ALREADY_LOADED:
+			push_error("Terrain3D extension failed to load. Status %s" % [load_status])
+			return
 	if not ClassDB.class_exists("Terrain3D"):
 		push_error("Terrain3D class is unavailable. Check the addon installation.")
 		return
