@@ -48,6 +48,8 @@ func _run() -> void:
 	cases.append(await _run_bearing_capture_case())
 	cases.append(await _run_map_board_fix_case())
 	cases.append(await _run_df_audio_case())
+	cases.append(await _run_df_quieting_case())
+	cases.append(await _run_off_channel_silence_case())
 
 	var pass_count := 0
 	var warning_count := 0
@@ -296,14 +298,64 @@ func _run_df_audio_case() -> Dictionary:
 	var snapshot = game.testing_snapshot()
 	var receiver = snapshot.get("receiver_profile", {})
 	var df_volume_db := float(snapshot.get("df_voice_volume_db", -80.0))
+	var noise_db := float(snapshot.get("df_noise_volume_db", -80.0))
 	return {
 		"name": "df_audio_audible",
-		"pass": String(receiver.get("broadcast_id", "")) == TARGET_ID and df_volume_db > -18.0,
+		"pass": String(receiver.get("broadcast_id", "")) == TARGET_ID and df_volume_db > -18.0 and int(snapshot.get("df_voice_playback_type", -1)) == 1,
 		"warning": false,
 		"details": {
 			"receiver_profile": receiver,
 			"df_voice_volume_db": df_volume_db,
-			"df_stream_paused": snapshot.get("df_stream_paused", true)
+			"df_noise_volume_db": noise_db,
+			"df_stream_paused": snapshot.get("df_stream_paused", true),
+			"df_voice_playback_type": snapshot.get("df_voice_playback_type", -1),
+			"audio_bootstrap_ready": snapshot.get("audio_bootstrap_ready", false)
+		}
+	}
+
+
+func _run_df_quieting_case() -> Dictionary:
+	game.testing_reset_hunt()
+	game.testing_dismiss_welcome_modal()
+	var target = game.testing_find_broadcast(TARGET_ID)
+	var listen_position: Vector2 = target["position"] + Vector2(-70, 0)
+	game.testing_set_player_position(listen_position)
+	game.testing_set_aim_direction(target["position"] - listen_position)
+	game.testing_set_df_frequency(target["frequency"])
+	await _wait_seconds(0.35).timeout
+	var snapshot = game.testing_snapshot()
+	var receiver = snapshot.get("receiver_profile", {})
+	var voice_db := float(snapshot.get("df_voice_volume_db", -80.0))
+	var noise_db := float(snapshot.get("df_noise_volume_db", -80.0))
+	return {
+		"name": "df_full_quieting",
+		"pass": String(receiver.get("broadcast_id", "")) == TARGET_ID and voice_db > -10.0 and noise_db <= -55.0 and not bool(snapshot.get("df_noise_playing", true)),
+		"warning": false,
+		"details": {
+			"receiver_profile": receiver,
+			"df_voice_volume_db": voice_db,
+			"df_noise_volume_db": noise_db,
+			"df_noise_playing": snapshot.get("df_noise_playing", true)
+		}
+	}
+
+
+func _run_off_channel_silence_case() -> Dictionary:
+	game.testing_reset_hunt()
+	game.testing_dismiss_welcome_modal()
+	game.testing_set_df_frequency(147.995)
+	await _wait_seconds(0.3).timeout
+	var snapshot = game.testing_snapshot()
+	var receiver = snapshot.get("receiver_profile", {})
+	return {
+		"name": "off_channel_silence",
+		"pass": String(receiver.get("broadcast_id", "")) == "" and float(snapshot.get("df_voice_volume_db", -80.0)) <= -75.0 and float(snapshot.get("df_noise_volume_db", -80.0)) <= -75.0 and not bool(snapshot.get("df_noise_playing", true)),
+		"warning": false,
+		"details": {
+			"receiver_profile": receiver,
+			"df_voice_volume_db": snapshot.get("df_voice_volume_db", -80.0),
+			"df_noise_volume_db": snapshot.get("df_noise_volume_db", -80.0),
+			"df_noise_playing": snapshot.get("df_noise_playing", true)
 		}
 	}
 
