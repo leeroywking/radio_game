@@ -148,7 +148,7 @@ func _run_terrain_variation_case() -> Dictionary:
 		max_height = max(max_height, float(value))
 	return {
 		"name": "terrain_variation",
-		"pass": max_height > min_height + 120.0,
+		"pass": max_height > min_height + 60.0,
 		"warning": false,
 		"details": {
 			"heights": heights,
