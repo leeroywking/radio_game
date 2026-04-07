@@ -8,6 +8,7 @@ The current build includes:
 
 - A Godot 4 first-person terrain view generated from the USGS Washington hillshade
 - Terrain now uses a built-in mesh-and-collision backend instead of a native addon, so the browser preview can run without GDExtension support
+- First-person movement now derives from the actual camera basis, so forward/back behavior and DF heading stay aligned
 - Tree scatter across the terrain view
 - Multiple simultaneous broadcasters with one designated as the real target conversation
 - Five distinct clean educational broadcasters now sit on the band before the target conversation is found
@@ -66,6 +67,9 @@ The current build includes:
 11. Browser previews cannot depend on stock-web-incompatible native addons.
    The original Terrain3D-based branch could pass local desktop tests and still fail in GitHub Pages because the stock Godot web template does not ship the needed native extension support. The active branch now avoids that class of failure by using built-in terrain rendering and by validating the exported `index.html` for stray extension references.
 
+12. First-person controls need to be verified behaviorally, not assumed from yaw math.
+   The manual trig-based movement path could feel reversed even when the DF compass looked plausible. The active branch now derives movement from the camera basis and has a regression case that checks forward motion against the current heading.
+
 ## Current files to know
 
 - `scripts/Main4.gd`
@@ -100,6 +104,9 @@ The current build includes:
 
 - Training-and-visual guidance coverage
   The headless testing agent now checks tutorial-step progression, live compass heading, and labeled bearing-visual summaries.
+
+- First-person control coverage
+  The headless testing agent now also verifies that stepping forward at the default heading actually advances the player in the camera-facing direction.
 
 - `docs/3d-restart-options.md`
   Historical framework survey from before the current built-in Godot 4 terrain migration landed.

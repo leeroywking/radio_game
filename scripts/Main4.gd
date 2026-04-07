@@ -23,13 +23,13 @@ const TUNE_WINDOW := 0.012
 const TARGET_BROADCAST_ID := "real_conversation"
 const WATERFALL_BINS := 72
 const WATERFALL_HISTORY := 36
-const TERRAIN_SIZE := Vector2(2048.0, 2048.0)
-const TERRAIN_HEIGHT_SCALE := 340.0
-const TERRAIN_HEIGHT_OFFSET := -120.0
+const TERRAIN_SIZE := Vector2(1536.0, 1536.0)
+const TERRAIN_HEIGHT_SCALE := 560.0
+const TERRAIN_HEIGHT_OFFSET := -180.0
 const TERRAIN_GRID_RESOLUTION := 128
-const PLAYER_MOVE_SPEED := 125.0
+const PLAYER_MOVE_SPEED := 240.0
 const PLAYER_EYE_HEIGHT := 1.7
-const PLAYER_LOOK_SENSITIVITY := 0.0022
+const PLAYER_LOOK_SENSITIVITY := 0.0054
 const TREE_COUNT := 260
 const TREE_LINE_ALTITUDE := 180.0
 const BROADCAST_BOUNDS := Rect2(Vector2(470, 90), Vector2(680, 520))
@@ -356,9 +356,12 @@ func _build_heightfield(size: int) -> void:
 		for x in range(size):
 			var pixel := source.get_pixel(x, y)
 			var luminance := pixel.get_luminance()
-			var ridge := pow(clamp((luminance - 0.18) / 0.82, 0.0, 1.0), 2.25)
-			var basin := 0.05 * sin(float(x) * 0.06) * cos(float(y) * 0.04)
-			var height_value: float = clamp(ridge + basin, 0.0, 1.0)
+			var ridge := pow(clamp((luminance - 0.15) / 0.85, 0.0, 1.0), 1.45)
+			var ridge_detail := 0.11 * sin(float(x) * 0.055) * cos(float(y) * 0.043)
+			var spur := 0.07 * sin(float(x + y) * 0.025)
+			var valley_mask := pow(abs(2.0 * (float(y) / float(size - 1)) - 1.0), 1.35)
+			var valley_floor := -0.22 * (1.0 - valley_mask)
+			var height_value: float = clamp(ridge + ridge_detail + spur + valley_floor, 0.0, 1.0)
 			var world_height: float = TERRAIN_HEIGHT_OFFSET + height_value * TERRAIN_HEIGHT_SCALE
 			terrain_heightfield[y * size + x] = world_height
 			terrain_height_min = min(terrain_height_min, world_height)
@@ -600,12 +603,13 @@ func _apply_camera_rotation() -> void:
 func _update_player_motion(delta: float) -> void:
 	var input_vector := Vector2.ZERO
 	input_vector.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
-	input_vector.y = Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
+	input_vector.y = Input.get_action_strength("move_up") - Input.get_action_strength("move_down")
 	if input_vector.length() > 1.0:
 		input_vector = input_vector.normalized()
-	var forward := Vector3(sin(player_yaw), 0.0, -cos(player_yaw))
-	var right := Vector3(forward.z, 0.0, -forward.x)
-	var move := (right * input_vector.x + forward * -input_vector.y) * PLAYER_MOVE_SPEED * delta
+	var move_basis := _movement_basis()
+	var forward := move_basis["forward"] as Vector3
+	var right := move_basis["right"] as Vector3
+	var move := (right * input_vector.x + forward * input_vector.y) * PLAYER_MOVE_SPEED * delta
 	var new_position := player_body.global_position + move
 	new_position.x = clamp(new_position.x, -TERRAIN_SIZE.x * 0.48, TERRAIN_SIZE.x * 0.48)
 	new_position.z = clamp(new_position.z, -TERRAIN_SIZE.y * 0.48, TERRAIN_SIZE.y * 0.48)
@@ -870,7 +874,30 @@ func _world_point_from_map_board(board_position: Vector2) -> Vector2:
 func _get_aim_vector() -> Vector2:
 	if testing_aim_override_enabled:
 		return testing_aim_direction.normalized()
-	return Vector2(sin(player_yaw), -cos(player_yaw)).normalized()
+	var move_basis := _movement_basis()
+	var forward := move_basis["forward"] as Vector3
+	return Vector2(forward.x, forward.z).normalized()
+
+
+func _movement_basis() -> Dictionary:
+	if player_camera_yaw != null:
+		var basis := player_camera_yaw.global_transform.basis
+		var forward := -basis.z
+		forward.y = 0.0
+		forward = forward.normalized()
+		var right := basis.x
+		right.y = 0.0
+		right = right.normalized()
+		return {
+			"forward": forward,
+			"right": right
+		}
+	var fallback_forward := Vector3(0.0, 0.0, -1.0)
+	var fallback_right := Vector3(1.0, 0.0, 0.0)
+	return {
+		"forward": fallback_forward,
+		"right": fallback_right
+	}
 
 
 func _bearing_degrees(direction: Vector2) -> float:
@@ -1407,6 +1434,22 @@ func testing_dismiss_welcome_modal() -> void:
 func testing_set_player_position(position: Vector2) -> void:
 	player_position = position
 	_sync_player_body_from_map()
+
+
+func testing_set_player_yaw(value: float) -> void:
+	player_yaw = value
+	_apply_camera_rotation()
+
+
+func testing_step_forward(distance: float) -> void:
+	var move_basis := _movement_basis()
+	var forward := move_basis["forward"] as Vector3
+	var new_position := player_body.global_position + forward * distance
+	new_position.x = clamp(new_position.x, -TERRAIN_SIZE.x * 0.48, TERRAIN_SIZE.x * 0.48)
+	new_position.z = clamp(new_position.z, -TERRAIN_SIZE.y * 0.48, TERRAIN_SIZE.y * 0.48)
+	new_position.y = _terrain_height_at_world(new_position)
+	player_body.global_position = new_position
+	_sync_map_from_player_body()
 
 
 func testing_set_df_frequency(value: float) -> void:

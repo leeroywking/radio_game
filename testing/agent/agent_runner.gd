@@ -40,6 +40,7 @@ func _run() -> void:
 	cases.append(await _run_startup_modal_case())
 	cases.append(await _run_terrain_bootstrap_case())
 	cases.append(await _run_terrain_variation_case())
+	cases.append(await _run_first_person_forward_motion_case())
 	cases.append(await _run_waterfall_visibility_case())
 	cases.append(await _run_waterfall_click_tuning_case())
 	cases.append(await _run_scanner_lock_case())
@@ -130,12 +131,37 @@ func _run_terrain_variation_case() -> Dictionary:
 		max_height = max(max_height, float(value))
 	return {
 		"name": "terrain_variation",
-		"pass": max_height > min_height + 25.0,
+		"pass": max_height > min_height + 120.0,
 		"warning": false,
 		"details": {
 			"heights": heights,
 			"min_height": min_height,
 			"max_height": max_height
+		}
+	}
+
+
+func _run_first_person_forward_motion_case() -> Dictionary:
+	game.testing_reset_hunt()
+	game.testing_dismiss_welcome_modal()
+	game.testing_set_player_position(Vector2(820, 430))
+	game.testing_set_player_yaw(0.0)
+	await _wait_seconds(0.05).timeout
+	var before = game.testing_snapshot()
+	game.testing_step_forward(80.0)
+	await _wait_seconds(0.05).timeout
+	var after = game.testing_snapshot()
+	var before_pos: Vector3 = before.get("player_world_position", Vector3.ZERO)
+	var after_pos: Vector3 = after.get("player_world_position", Vector3.ZERO)
+	var heading_deg := float(after.get("compass_heading_deg", 0.0))
+	return {
+		"name": "first_person_forward_motion",
+		"pass": after_pos.z < before_pos.z - 20.0 and abs(heading_deg) <= 1.0,
+		"warning": false,
+		"details": {
+			"before_world": before_pos,
+			"after_world": after_pos,
+			"heading_deg": heading_deg
 		}
 	}
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.4`.
+- Corrected first-person movement to follow the actual camera-facing direction instead of a drifting manual yaw convention.
+- Increased first-person mouse-look sensitivity so turning feels closer to a normal FPS baseline.
+- Reworked the built-in terrain heightfield to produce stronger ridges and valleys, and tightened the terrain-variation regression threshold.
+- Added a first-person forward-motion regression case so `W` continues to mean forward in view.
 - Replaced the web-incompatible Terrain3D addon path with a built-in Godot 4 terrain mesh plus collision backend.
 - Removed the bundled `addons/terrain_3d` dependency from the active branch so browser exports no longer advertise GDExtension libraries.
 - Added an export-time validation in `scripts/build_exports.sh` that fails if the HTML5 bundle still references native extension libraries.
