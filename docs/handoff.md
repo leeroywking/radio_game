@@ -6,7 +6,8 @@ This repository contains a playable Godot-based prototype for a radio direction 
 
 The current build includes:
 
-- A real USGS Washington hillshade map backdrop
+- A Godot 4 first-person terrain view generated from the USGS Washington hillshade
+- Tree scatter across the terrain view
 - Multiple simultaneous broadcasters with one designated as the real target conversation
 - Five distinct clean educational broadcasters now sit on the band before the target conversation is found
 - DF receiver tuning by slider and direct numeric entry
@@ -26,7 +27,7 @@ The current build includes:
 - Bearing capture now records azimuth and coaching text so players get explicit keep/retake guidance
 - Bearing shots are labeled directly on the map and map board so each line of bearing is tied to a shot location and angle
 - Bearing capture, fix placement, and scoring
-- The prototype is intentionally back to a 2D-only training view while first-person mode is redesigned
+- A Godot 4-native first-person mode is now the active migration slice
 - A headless gameplay testing agent with comparison against the previous run
 
 ## Key learnings
@@ -58,13 +59,13 @@ The current build includes:
 9. "Review-ready" includes green current PR checks.
    Local verification is not enough on its own. Before handoff, the current PR head should show successful GitHub checks, or the agent should continue until that is true or report the concrete blocker.
 
-10. The first-person path should restart from a clean baseline.
-   The previous 3D attempts accumulated too many presentation hacks. The repo now removes that path entirely and documents replacement candidates in `docs/3d-restart-options.md`.
+10. The first-person path needed a clean break from the earlier pseudo-3D attempts.
+   The active migration now uses a Godot 4-native script plus Terrain3D runtime instead of extending the removed path.
 
 ## Current files to know
 
-- `scripts/Main.gd`
-  Main gameplay, audio simulation, reset logic, map loading, scanner behavior, and UI updates.
+- `scripts/Main4.gd`
+  Active Godot 4 gameplay script. Owns first-person terrain setup, shared DF/scanner simulation, waterfall rendering, and map-board plotting.
 
 - `scenes/Main.tscn`
   Current HUD layout and all control widgets.
@@ -73,7 +74,7 @@ The current build includes:
   Tracked export definitions for Linux, Windows, and HTML5 packaging.
 
 - `scripts/build_exports.sh`
-  Repeatable export entrypoint. Installs official Godot 3.5.3 export templates on demand and writes release artifacts into `dist/`.
+  Repeatable export entrypoint. It now targets Godot 4.5.2 export templates and writes release artifacts into `dist/`.
 
 - `docs/distribution.md`
   Explains the output folders and which files are intended for itch.io download uploads versus HTML5 browser uploads.
@@ -97,7 +98,7 @@ The current build includes:
   The headless testing agent now checks tutorial-step progression, live compass heading, and labeled bearing-visual summaries.
 
 - `docs/3d-restart-options.md`
-  Framework survey and restart recommendation for the next first-person implementation.
+  Historical framework survey from before the current Godot 4 migration landed.
 
 - `.github/workflows/ci.yml`
   GitHub Actions pipeline that downloads the Godot runtime, runs the headless gameplay tests, builds export artifacts, publishes versioned releases when `VERSION` changes, and publishes branch previews plus the default HTML5 build to GitHub Pages.
@@ -125,15 +126,15 @@ The current build includes:
 - Bearing capture now applies a short DF-audio hold so pressing `Space` does not cause a momentary audio drop if the receiver would otherwise flicker off the station during capture.
 - The map board is still not a full notebook workflow, but it is no longer just a zoomed view. It now supports direct fix placement on the board and shows bearings with azimuth notes and uncertainty wedges.
 - Reset now also resets DF tuning so a new run starts from a clean teaching state instead of inheriting the prior frequency.
-- The current build is intentionally 2D-only again while the 3D restart is re-planned.
+- Terrain is present and testable now, but Terrain3D still emits renderer/material warnings during interactive startup and the Godot 4 export path still needs full branch validation.
 
 ## Recommended next steps
 
-1. Refactor the HUD into clearer sections or multiple panels before adding more controls.
-2. Evolve the current fake-but-live waterfall into a truer receiver-band model or FFT-driven display.
-3. Add a stronger mission loop around identifying the target frequency before triangulation.
-4. Introduce terrain-aware attenuation only after the current interaction loop feels stable.
-5. Choose a terrain stack from `docs/3d-restart-options.md` before starting the next first-person branch.
+1. Finish stabilizing Terrain3D startup so interactive runs are free of material warnings.
+2. Validate Linux, Windows, and HTML5 exports on the Godot 4 pipeline.
+3. Refactor the HUD into clearer sections or multiple panels before adding more controls.
+4. Evolve the current fake-but-live waterfall into a truer receiver-band model or FFT-driven display.
+5. Add terrain-aware attenuation only after the first-person traversal loop feels stable.
 
 ## Running the prototype
 

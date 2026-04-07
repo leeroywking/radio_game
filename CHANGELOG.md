@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Bumped project version to `0.4.3`.
+- Migrated the active runtime/tooling path from Godot `3.5.3` to Godot `4.5.2`.
+- Added `scripts/Main4.gd` as the new Godot 4-native gameplay script and switched the main scene to it.
+- Added a first-person terrain view generated from the Washington hillshade, with scattered trees.
+- Kept the DF/scanner/waterfall/map-board loop running on the new Godot 4 branch.
+- Replaced the old Godot 3-focused headless suite with a Godot 4 migration suite that covers terrain bootstrap, terrain variation, waterfall visibility, scanner lock, bearing capture, map-board submission, and DF audibility.
+- Updated local run/test scripts and CI/build automation to use Godot `4.5.2`.
 - Added `VERSION` as the source of truth for shipped release versions.
 - Changed GitHub release automation to publish versioned releases only when `VERSION` changes on `master` or `main`.
 - Added CI enforcement so product-facing PRs must bump `VERSION`.

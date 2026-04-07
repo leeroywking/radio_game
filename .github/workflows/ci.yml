@@ -8,7 +8,7 @@ on:
 
 env:
   # renovate: datasource=github-releases depName=godotengine/godot versioning=loose
-  GODOT_RELEASE: 3.5.3-stable
+  GODOT_RELEASE: 4.5.2-stable
 
 jobs:
   version-check:
@@ -87,12 +87,12 @@ jobs:
 
       - name: Download Godot runtime
         run: |
-          GODOT_RUNTIME_SHA256="fe26dfed51e50f75b60d14805f696075e7ef9f10a357be71b540c704e00ef33e"
-          mkdir -p tools/godot3
-          wget -O tools/godot3.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_x11.64.zip"
-          echo "$GODOT_RUNTIME_SHA256  tools/godot3.zip" | sha256sum --check --
-          unzip -oq tools/godot3.zip -d tools/godot3
-          chmod +x "tools/godot3/Godot_v${GODOT_RELEASE}_x11.64"
+          GODOT_RUNTIME_SHA512="e3ce6194b6d4d2dcef5e5b5136752c084d9d8b9071c10bc2d2011b947ec7439a257c8d23c541cb30699f16d9edea6dff36e6e84d2bec14a8fe9b4e9aacbe5a8d"
+          mkdir -p tools/godot4
+          wget -O tools/godot4.zip "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          echo "$GODOT_RUNTIME_SHA512  tools/godot4.zip" | sha512sum --check --
+          unzip -oq tools/godot4.zip -d tools/godot4
+          chmod +x "tools/godot4/Godot_v${GODOT_RELEASE}_linux.x86_64"
 
       - name: Ensure scripts are executable
         run: |
